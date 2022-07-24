@@ -1,7 +1,6 @@
-FROM pytorchlightning/pytorch_lightning
+FROM deepms-torch-image-upgraded
 
 WORKDIR /DeepMS
-COPY ./requirements.txt ./DeepMS
+COPY ./requirements.txt /DeepMS/
 
-RUN apt-get update && apt-get upgrade -y
 RUN pip install -r requirements.txt
