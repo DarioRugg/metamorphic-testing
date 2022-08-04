@@ -1,0 +1,9 @@
+
+- seed: 1234
+
+- dataset:
+  - batch_size: 128
+
+- model:
+  - epochs: 70
+  - num_features: 50
