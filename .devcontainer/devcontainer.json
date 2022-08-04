@@ -3,7 +3,7 @@
 {
 	"name": "DeepMS container",
 
-	"image": "rugg/DeepMS:latest",
+	"image": "rugg/deepms:latest",
 
 	"runArgs": ["--name=rugg-deepms", "--runtime=nvidia"]
 }

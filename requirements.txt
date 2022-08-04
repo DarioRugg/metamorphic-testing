@@ -1,4 +1,5 @@
 pymzml
 # matplotlib
 # plotly
-# jupyter
+jupyter
+hydra-core
