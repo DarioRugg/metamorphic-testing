@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from sklearn import preprocessing
 
 
-class DataModule(pl.LightningDataModule):
+class NIZODataModule(pl.LightningDataModule):
     def __init__(self, data_path, batch_size, num_features, threshold=5e6):
         super().__init__()
         self.intervals = None

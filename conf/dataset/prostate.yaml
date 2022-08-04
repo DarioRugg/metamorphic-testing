@@ -1,0 +1,3 @@
+data_path: "assets/data/prostate/P_1900.h5"
+num_features: 50
+batch_size: 128

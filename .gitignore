@@ -134,3 +134,7 @@ dmypy.json
 # ignoring IDE folder:
 **/.idea/
 
+outputs/
+
+#test files:
+*_test.*

@@ -22,12 +22,13 @@ def main(cfg : DictConfig) -> None:
 
 
     # Set seeds for numpy, torch and python.random.
-    model = VAE(input_shape=cfg.model.num_features)
+    model = VAE(input_shape=cfg.dataset.num_features)
     logger = TensorBoardLogger("./assets/tb_logs", name="VAE")
     actual_logger = CustomLogger()
-    trainer = Trainer(deterministic=True, max_epochs=epochs, log_every_n_steps=10, logger=logger, callbacks=actual_logger)
+    trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, log_every_n_steps=10, 
+    logger=logger, callbacks=actual_logger, accelerator=cfg.machine.accelerator, devices= cfg.machine.gpu_idx if cfg.machine.accelerator is "gpu" else None)
 
-    dataset = DataModule(data_path="assets/data/TQ8_201023SJ01_0103.mzML",
+    dataset = DataModule(data_path=cfg.dataset.data_path,
                         batch_size=cfg.dataset.batch_size,
                         num_features=cfg.model.num_features)
 

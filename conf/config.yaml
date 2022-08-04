@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+  - model: default
+  - dataset: prostate
+  - machine: gpu
+
+seed: 1234
+
+machine:
+  workers: 8
