@@ -130,3 +130,7 @@ dmypy.json
 /assets/
 /assets
 /lightning_logs/
+
+# ignoring IDE folder:
+**/.idea/
+
