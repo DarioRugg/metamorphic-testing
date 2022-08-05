@@ -1,0 +1,4 @@
+name: vae
+intermediate_dim: 512
+latent_dim: 5
+epochs: 70

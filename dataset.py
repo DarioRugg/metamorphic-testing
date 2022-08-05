@@ -5,18 +5,50 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader
 from sklearn import preprocessing
+from omegaconf import DictConfig
+from pathlib import Path
+from sklearn.model_selection import train_test_split
+import h5py
 
 
-class NIZODataModule(pl.LightningDataModule):
-    def __init__(self, data_path, batch_size, num_features, threshold=5e6):
+
+class BaseDataModule(pl.LightningDataModule):
+    def __init__(self, cfg : DictConfig):
         super().__init__()
+
+        self.train = None
+        self.test = None
+        self.val = None
+        
+        self.features = None
+
+        self.data_path=Path(cfg.dataset.data_path)
+        self.batch_size=cfg.dataset.batch_size
+        self.num_workers=cfg.machine.workers
+
+    def train_dataloader(self):
+        return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+
+    def predict_dataloader(self):
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers)
+    
+    def test_dataloader(self):
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers)
+    
+    def val_dataloader(self):
+        return DataLoader(self.val, batch_size=self.batch_size, num_workers=self.num_workers)
+
+    def get_num_features(self) -> int:
+        return len(self.features)
+
+class NIZODataModule(BaseDataModule):
+    def __init__(self, cfg : DictConfig):
+        super().__init__(cfg)
         self.intervals = None
         self.x = None
-        self.features = None
-        self.data_path = data_path
-        self.batch_size = batch_size
-        self.num_features = num_features
-        self.threshold = threshold
+
+        self.num_features=cfg.dataset.num_features
+        self.threshold=cfg.dataset.threshold
 
     def prepare_data(self):
         run = pymzml.run.Reader(self.data_path)
@@ -63,3 +95,23 @@ class NIZODataModule(pl.LightningDataModule):
 
     def predict_dataloader(self):
         return DataLoader(self.x, batch_size=self.batch_size, num_workers=8)
+
+    def get_num_features(self) -> int:
+        return self.num_features
+
+class ProstateDataModule(BaseDataModule):
+    def setup(self, stage=None):
+        with h5py.File(self.data_path,'r') as f:
+            dataset = np.transpose(f["Data"])  # spectral information.
+            self.features = np.array(f["mzArray"])
+            dataset = preprocessing.normalize(dataset)  # l2 normalize each sample independently
+            
+            dataset, self.test = train_test_split(dataset, test_size=0.1)
+            self.train, self.val = train_test_split(dataset, test_size=self.test.shape[0])
+    
+    def get_num_features(self) -> int:
+        if self.features is None:
+            with h5py.File(self.data_path,'r') as f:
+                self.features = np.array(f["mzArray"])
+        return super().get_num_features()
+        

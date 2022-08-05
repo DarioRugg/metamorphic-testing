@@ -4,8 +4,8 @@ import torch
 
 from sklearn.metrics import mean_squared_error
 
-from model import VAE
-from dataset import DataModule
+from model import SimpleAutoEncoder, LitAutoEncoder, VAE
+from dataset import ProstateDataModule, NIZODataModule
 from pytorch_lightning import Trainer, seed_everything
 
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -20,23 +20,28 @@ def main(cfg : DictConfig) -> None:
     seed_everything(cfg.seed, workers=True)
 
 
+    if cfg.dataset.name == "prostate":
+        dataset = ProstateDataModule(cfg)
+    elif cfg.dataset.name == "nizo":
+        dataset = NIZODataModule(cfg)
 
     # Set seeds for numpy, torch and python.random.
-    model = VAE(input_shape=cfg.dataset.num_features)
-    logger = TensorBoardLogger("./assets/tb_logs", name="VAE")
+    if cfg.model.name == "ae":
+        model = SimpleAutoEncoder(cfg, dataset.get_num_features())
+        lightning_model = LitAutoEncoder(model)
+    if cfg.model.name == "vae":
+        model = VAE(input_shape=cfg.dataset.num_features)
+        lightning_model = model
+    logger = TensorBoardLogger("./assets/prostate/tb_logs", name="AE")
     actual_logger = CustomLogger()
     trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, log_every_n_steps=10, 
-    logger=logger, callbacks=actual_logger, accelerator=cfg.machine.accelerator, devices= cfg.machine.gpu_idx if cfg.machine.accelerator is "gpu" else None)
+    logger=logger, accelerator=cfg.machine.accelerator, devices= cfg.machine.gpu_index if cfg.machine.accelerator == "gpu" else None)
 
-    dataset = DataModule(data_path=cfg.dataset.data_path,
-                        batch_size=cfg.dataset.batch_size,
-                        num_features=cfg.model.num_features)
-
-    trainer.fit(model, dataset)
-    actual_logger.plot_logs()
+    trainer.fit(lightning_model, datamodule=dataset)
+    # actual_logger.plot_logs()
 
     x = dataset.x.numpy()
-    x_hat = torch.cat(trainer.predict(model, dataset)).numpy()
+    x_hat = torch.cat(trainer.predict(lightning_model, datamodule=dataset)).numpy()
 
     for i in range(0, x_hat.shape[0], 200):
         plt.title('reconstruction error (MAE {:.3f})\nfor sample {:>4}'.format(

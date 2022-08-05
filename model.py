@@ -1,8 +1,101 @@
+from calendar import c
 from collections import OrderedDict
 
 import pytorch_lightning as pl
 from torch import nn
+import torch.nn.functional as F
 import torch
+import itertools
+
+from omegaconf import DictConfig
+
+class Encoder(torch.nn.Module):
+    def __init__(self, cfg: DictConfig, input_shape: int) -> None:
+        super().__init__()
+
+        self.model = OrderedDict(list(itertools.chain.from_iterable([
+            [('linear', nn.Linear(input_shape if i==0 else cfg.model.layers_dims[i-1], dim)),
+            ('batch_norm', nn.Dropout(cfg.model.dropout_prob)) if i%2==0 else ('batch_norm', nn.BatchNorm1d(dim)),
+            ('relu', nn.ReLU())] for i, dim in enumerate(cfg.model.layers_dims)
+        ]))[:-1])
+
+    def forward(self, x):
+        return self(x)
+
+
+class Decoder(torch.nn.Module):
+    def __init__(self, cfg: DictConfig, input_shape: int) -> None:
+        super().__init__()
+
+        self.model = OrderedDict(list(itertools.chain.from_iterable(reversed([
+            [('linear', nn.Linear(input_shape if i==0 else cfg.model.layers_dims[i-1], dim)),
+            ('batch_norm', nn.Dropout(cfg.model.dropout_prob)) if i%2==0 else ('batch_norm', nn.BatchNorm1d(dim)),
+            ('relu', nn.ReLU())] for i, dim in enumerate(cfg.model.layers_dims)
+        ])))[:-1])
+
+    def forward(self, x):
+        return self(x)
+
+
+class SimpleAutoEncoder(torch.nn.Module):
+    def __init__(self, cfg: DictConfig, input_shape: int):
+        super().__init__()
+        self.encoder = Encoder(cfg, input_shape)
+        self.decoder = Decoder(cfg, input_shape)
+
+    def forward(self, x):
+        return self.decoder(self.encoder(x))
+
+
+class LitAutoEncoder(pl.LightningModule):
+    def __init__(self, auto_encoder):
+        super().__init__()
+        self.auto_encoder = auto_encoder
+        self.metric = nn.MSELoss()
+
+    def forward(self, x):
+        return self.auto_encoder.encoder(x)
+
+    def configure_optimizers(self):
+        return torch.optim.Adam(self.parameters(), lr=5e-5)
+
+    def training_step(self, batch, batch_idx):
+        x = batch
+
+        x_hat = self(x)
+
+        loss = self.metric(x_hat, x)
+
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+        x = batch
+
+        x_hat = self(x)
+
+        loss = self.metric(x_hat, x)
+        metrics = {"val_MSE": loss}
+        self.log_dict(metrics)
+
+        return loss
+        
+    def test_step(self, batch, batch_idx):
+        x = batch
+
+        x_hat = self(x)
+
+        loss = self.metric(x_hat, x)
+        metrics = {"test_MSE": loss}
+        self.log_dict(metrics)
+
+        return loss
+
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
+        x = batch
+
+        x_hat = self(x)
+
+        return x_hat
 
 
 class VAE(pl.LightningModule):

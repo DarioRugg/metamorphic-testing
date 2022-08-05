@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - model: default
+  - model: ae
   - dataset: prostate
   - machine: gpu
 
