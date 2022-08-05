@@ -102,8 +102,8 @@ class NIZODataModule(BaseDataModule):
 class ProstateDataModule(BaseDataModule):
     def setup(self, stage=None):
         with h5py.File(self.data_path,'r') as f:
-            dataset = np.transpose(f["Data"])  # spectral information.
-            self.features = np.array(f["mzArray"])
+            dataset = np.transpose(np.array(f["Data"], dtype=np.float32))  # spectral information.
+            self.features = np.array(f["mzArray"], dtype=np.float32)
             dataset = preprocessing.normalize(dataset)  # l2 normalize each sample independently
             
             dataset, self.test = train_test_split(dataset, test_size=0.1)
@@ -112,6 +112,6 @@ class ProstateDataModule(BaseDataModule):
     def get_num_features(self) -> int:
         if self.features is None:
             with h5py.File(self.data_path,'r') as f:
-                self.features = np.array(f["mzArray"])
+                self.features = np.array(f["mzArray"], dtype=np.float32)
         return super().get_num_features()
         

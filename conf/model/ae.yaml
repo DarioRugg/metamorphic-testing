@@ -2,3 +2,4 @@ name: ae
 layers_dims: [64, 32, 16, 16]
 dropout_prob: 0.03
 epochs: 70
+loss: mse

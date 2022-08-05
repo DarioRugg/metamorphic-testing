@@ -5,5 +5,5 @@
 
 	"image": "rugg/deepms:latest",
 
-	"runArgs": ["--name=rugg-deepms", "--runtime=nvidia"]
+	"runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--shm-size=1g"]
 }

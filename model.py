@@ -13,28 +13,26 @@ class Encoder(torch.nn.Module):
     def __init__(self, cfg: DictConfig, input_shape: int) -> None:
         super().__init__()
 
-        self.model = OrderedDict(list(itertools.chain.from_iterable([
-            [('linear', nn.Linear(input_shape if i==0 else cfg.model.layers_dims[i-1], dim)),
-            ('batch_norm', nn.Dropout(cfg.model.dropout_prob)) if i%2==0 else ('batch_norm', nn.BatchNorm1d(dim)),
-            ('relu', nn.ReLU())] for i, dim in enumerate(cfg.model.layers_dims)
-        ]))[:-1])
+        dims = self._layers_dimensions(cfg, input_shape)
+
+        self.model = nn.Sequential(OrderedDict(itertools.chain.from_iterable([
+                [(f'linear_{i}', nn.Linear(dims[i-1], dims[i])),
+                 (f'batch_norm_{i}', nn.Dropout(cfg.model.dropout_prob)) if i%2==0 else (f'batch_norm_{i}', nn.BatchNorm1d(dims[i])),
+                 (f'relu_{i}', nn.ReLU())] if i < len(cfg.model.layers_dims) else 
+                [(f'linear_{i}', nn.Linear(dims[i-1], dims[i]))] 
+                for i in range(1, len(dims))
+            ])))
+    
+    def _layers_dimensions(self, cfg: DictConfig, input_shape: int):
+        return [input_shape] + cfg.model.layers_dims
 
     def forward(self, x):
-        return self(x)
+        return self.model(x)
 
 
-class Decoder(torch.nn.Module):
-    def __init__(self, cfg: DictConfig, input_shape: int) -> None:
-        super().__init__()
-
-        self.model = OrderedDict(list(itertools.chain.from_iterable(reversed([
-            [('linear', nn.Linear(input_shape if i==0 else cfg.model.layers_dims[i-1], dim)),
-            ('batch_norm', nn.Dropout(cfg.model.dropout_prob)) if i%2==0 else ('batch_norm', nn.BatchNorm1d(dim)),
-            ('relu', nn.ReLU())] for i, dim in enumerate(cfg.model.layers_dims)
-        ])))[:-1])
-
-    def forward(self, x):
-        return self(x)
+class Decoder(Encoder):
+    def _layers_dimensions(self, cfg: DictConfig, input_shape: int):
+        return list(reversed(super()._layers_dimensions(cfg, input_shape)))
 
 
 class SimpleAutoEncoder(torch.nn.Module):
@@ -48,13 +46,17 @@ class SimpleAutoEncoder(torch.nn.Module):
 
 
 class LitAutoEncoder(pl.LightningModule):
-    def __init__(self, auto_encoder):
+    def __init__(self, cfg: DictConfig, auto_encoder: SimpleAutoEncoder):
         super().__init__()
         self.auto_encoder = auto_encoder
-        self.metric = nn.MSELoss()
+
+        if cfg.model.loss == "mse":
+            self.metric = nn.MSELoss()
+        else:
+            raise "other losses to be defined yet"
 
     def forward(self, x):
-        return self.auto_encoder.encoder(x)
+        return self.auto_encoder(x)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=5e-5)
@@ -65,6 +67,8 @@ class LitAutoEncoder(pl.LightningModule):
         x_hat = self(x)
 
         loss = self.metric(x_hat, x)
+        metrics = {"train_MSE": loss}
+        self.log_dict(metrics)
 
         return loss
     

@@ -3,3 +3,5 @@ pymzml
 # plotly
 jupyter
 hydra-core
+h5py
+clearml
