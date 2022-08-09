@@ -3,8 +3,9 @@ from collections import OrderedDict
 
 import pytorch_lightning as pl
 from torch import nn
-import torch.nn.functional as F
 import torch
+from torch.optim.lr_scheduler import LinearLR, ReduceLROnPlateau
+
 import itertools
 from dataset import ProstateDataModule
 
@@ -21,13 +22,17 @@ class Encoder(torch.nn.Module):
         self.model = nn.Sequential(OrderedDict(itertools.chain.from_iterable([
                 [(f'linear_{i}', nn.Linear(dims[i-1], dims[i])),
                  (f'batch_norm_{i}', nn.Dropout(cfg.model.dropout_prob)) if i%2==0 else (f'batch_norm_{i}', nn.BatchNorm1d(dims[i])),
-                 (f'relu_{i}', nn.ReLU())] if i < len(cfg.model.layers_dims) else 
-                [(f'linear_{i}', nn.Linear(dims[i-1], dims[i]))] 
+                 (f'relu_{i}', nn.ReLU())] if i < len(dims)-1 else 
+                [(f'linear_{i}', nn.Linear(dims[i-1], dims[i])),
+                 tuple(self._last_activation_function(i))] 
                 for i in range(1, len(dims))
             ])))
     
     def _layers_dimensions(self, cfg: DictConfig, input_shape: int):
         return [input_shape] + cfg.model.layers_dims
+    
+    def _last_activation_function(self, index):
+        return (f'sigmoid_{index}', nn.Sigmoid())
 
     def forward(self, x):
         return self.model(x)
@@ -36,6 +41,9 @@ class Encoder(torch.nn.Module):
 class Decoder(Encoder):
     def _layers_dimensions(self, cfg: DictConfig, input_shape: int):
         return list(reversed(super()._layers_dimensions(cfg, input_shape)))
+        
+    def _last_activation_function(self, index):
+        return (f'relu_{index}', nn.ReLU())
 
 
 class SimpleAutoEncoder(torch.nn.Module):
@@ -53,6 +61,8 @@ class LitAutoEncoder(ModelWithLoggingFunctions):
         super().__init__(cfg, dataset)
         self.auto_encoder = auto_encoder
 
+        self.lr = cfg.model.learning_rate
+
         if cfg.model.loss == "mse":
             self.metric = nn.MSELoss()
         else:   
@@ -62,7 +72,10 @@ class LitAutoEncoder(ModelWithLoggingFunctions):
         return self.auto_encoder(x)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=5e-5)
+        optim = torch.optim.Adam(self.parameters(), lr=self.lr)
+        linear_sched = LinearLR(optim, start_factor=0.3333333333333333, total_iters=8)
+        plateau_sched = ReduceLROnPlateau(optim, mode='min', factor=0.05, patience=4, threshold=1e-5)
+        return {"optimizer": optim, "scheduler": [linear_sched, plateau_sched], "monitor": "val_loss"}
 
     def training_step(self, batch, batch_idx):
         x = batch
@@ -70,8 +83,7 @@ class LitAutoEncoder(ModelWithLoggingFunctions):
         x_hat = self(x)
 
         loss = self.metric(x_hat, x)
-        metrics = {"train_MSE": loss}
-        self.log_dict(metrics)
+        self.log("MSE", {"train": loss})
 
         return loss
     
@@ -81,8 +93,9 @@ class LitAutoEncoder(ModelWithLoggingFunctions):
         x_hat = self(x)
 
         loss = self.metric(x_hat, x)
-        metrics = {"val_MSE": loss}
-        self.log_dict(metrics)
+        self.log("MSE", {"val": loss})
+
+        self.log("val_loss", loss)
 
         return loss
         
@@ -92,8 +105,7 @@ class LitAutoEncoder(ModelWithLoggingFunctions):
         x_hat = self(x)
 
         loss = self.metric(x_hat, x)
-        metrics = {"test_MSE": loss}
-        self.log_dict(metrics)
+        self.log("MSE", {"test": loss})
 
         return loss
 

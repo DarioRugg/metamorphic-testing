@@ -1,16 +1,12 @@
 import os
-import numpy as np
-from matplotlib import pyplot as plt
 
 from model import SimpleAutoEncoder, LitAutoEncoder, VAE
 from dataset import ProstateDataModule, NIZODataModule
 from pytorch_lightning import Trainer, seed_everything
-
-from pytorch_lightning.loggers import TensorBoardLogger
-from logger import CustomLogger
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from clearml import Task
@@ -36,16 +32,17 @@ def main(cfg : DictConfig) -> None:
     if cfg.model.name == "vae":
         model = VAE(input_shape=cfg.dataset.num_features)
         lightning_model = model
-    # logger = TensorBoardLogger("./assets/prostate/tb_logs", name="AE")
-    # actual_logger = CustomLogger()
-    trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, log_every_n_steps=10,
-    # accelerator=cfg.machine.accelerator, devices= cfg.machine.gpu_index if cfg.machine.accelerator == "gpu" else None)
-    accelerator=cfg.machine.accelerator)
+    
+    early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=1e-8, patience=5)
 
-    trainer.fit(lightning_model, datamodule=dataset)
-    # actual_logger.plot_logs()
+    trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=[early_stop_callback], 
+                        log_every_n_steps=10, accelerator=cfg.machine.accelerator)
+    
+    if cfg.train:
+        trainer.fit(lightning_model, datamodule=dataset)
 
-    trainer.test(lightning_model, datamodule=dataset)
+    if cfg.test:
+        trainer.test(lightning_model, datamodule=dataset)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 name: ae
-layers_dims: [64, 32, 16, 16]
+layers_dims: [256, 128, 64, 32, 16, 16]
 dropout_prob: 0.03
+learning_rate: 0.001
 epochs: 70
 loss: mse

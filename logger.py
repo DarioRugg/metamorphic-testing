@@ -112,37 +112,39 @@ class ModelWithLoggingFunctions(pl.LightningModule):
         self.dataset = dataset
 
     def training_epoch_end(self,outputs):
-        self._plot_pixels(self.dataset.train, self.cfg.logs.train_pixels, self.dataset.features, "train", outputs)
+        if self.current_epoch != 0 and self.current_epoch%4 == 0:
+            self._plot_pixels(self.dataset.train, self.cfg.logs.train_pixels, self.dataset.features, "train")
         return super().training_epoch_end(outputs)
 
     def validation_epoch_end(self,outputs):
-        self._plot_pixels(self.dataset.val, self.cfg.logs.val_pixels, self.dataset.features, "val", outputs)
+        if self.current_epoch != 0 and self.current_epoch%4 == 0:
+            self._plot_pixels(self.dataset.val, self.cfg.logs.val_pixels, self.dataset.features, "val")
         return super().validation_epoch_end(outputs)
     
     def test_epoch_end(self, outputs):
-        self._plot_pixels(self.dataset.test, self.cfg.logs.test_pixels, self.dataset.features, "test", outputs)
+        self._plot_pixels(self.dataset.test, self.cfg.logs.test_pixels, self.dataset.features, "test")
         return super().test_epoch_end(outputs)
 
-    def _plot_pixels(self, data: np.ndarray, pixels_to_log: list, features, split: str, outputs):
-        num_pixels = len(pixels_to_log)
+    def _plot_pixels(self, data: np.ndarray, pixels_to_log: list, features, split: str):
         pixels = data[pixels_to_log, :]
 
         pixels_hat = self(torch.from_numpy(pixels).to(f'cuda:0')).to("cpu").detach().numpy()
 
-        fig, axs = plt.subplots(1, num_pixels,
-                                    figsize=(5 * num_pixels, 5.5))
+        fig, axs = plt.subplots(2, len(pixels_to_log)//2,
+                                    figsize=(7.5 * len(pixels_to_log)//2, 5 * 2))
         fig.subplots_adjust(top=0.8)
         plt.suptitle("{}\ncomparison plot".format(split))
 
-        for i, (pixel, pixel_hat) in enumerate(zip(pixels, pixels_hat)):
-            axs[i].set_title("pixel {}\nMSE: {:.5f}".format(i, F.mse_loss(torch.from_numpy(pixel), torch.from_numpy(pixel_hat))))
-            axs[i].plot(features, pixel, label="original", alpha=0.7)
-            axs[i].plot(features, pixel_hat, label="reconstructed", alpha=0.7)
-
-            axs[i].set_xlabel('mz')
-
-        axs[0].set_ylabel('i')
-        axs[-1].legend()
+        for ax, pixel_index, pixel, pixel_hat in zip(axs.flat, pixels_to_log, pixels, pixels_hat):
+            ax.set_title("pixel {}\nMSE: {:.5f}".format(pixel_index, F.mse_loss(torch.from_numpy(pixel), torch.from_numpy(pixel_hat))))
+            ax.plot(features, pixel, label="original", alpha=0.7)
+            ax.plot(features, pixel_hat, label="reconstructed", alpha=0.7)
+        
+        axs[0, 0].legend()
+        for ax in axs[-1, :].flat:
+            ax.set_xlabel('mz')
+        for ax in axs[:, 0].flat:
+            ax.set_ylabel('i')
 
         #plt.savefig(self.plots_path / "pixels_comparison_plot_epoch_{}.png".format(epoch))
         plt.show()
