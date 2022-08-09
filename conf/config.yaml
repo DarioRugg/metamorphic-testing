@@ -3,6 +3,7 @@ defaults:
   - model: ae
   - dataset: prostate
   - machine: gpu
+  - logs: prostate
 
 seed: 1234
 

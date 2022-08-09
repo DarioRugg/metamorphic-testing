@@ -6,6 +6,9 @@ from torch import nn
 import torch.nn.functional as F
 import torch
 import itertools
+from dataset import ProstateDataModule
+
+from logger import ModelWithLoggingFunctions
 
 from omegaconf import DictConfig
 
@@ -45,14 +48,14 @@ class SimpleAutoEncoder(torch.nn.Module):
         return self.decoder(self.encoder(x))
 
 
-class LitAutoEncoder(pl.LightningModule):
-    def __init__(self, cfg: DictConfig, auto_encoder: SimpleAutoEncoder):
-        super().__init__()
+class LitAutoEncoder(ModelWithLoggingFunctions):
+    def __init__(self, cfg: DictConfig, auto_encoder: SimpleAutoEncoder, dataset: ProstateDataModule):
+        super().__init__(cfg, dataset)
         self.auto_encoder = auto_encoder
 
         if cfg.model.loss == "mse":
             self.metric = nn.MSELoss()
-        else:
+        else:   
             raise "other losses to be defined yet"
 
     def forward(self, x):
