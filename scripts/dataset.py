@@ -22,7 +22,7 @@ class BaseDataModule(pl.LightningDataModule):
         
         self.features = None
 
-        self.data_path=Path(cfg.dataset.data_path)
+        self.data_path=cfg.dataset.data_path
         self.batch_size=cfg.dataset.batch_size
         self.num_workers=cfg.machine.workers
 

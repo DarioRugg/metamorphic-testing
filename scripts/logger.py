@@ -1,6 +1,6 @@
 from black import out
 import numpy as np
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 import torch

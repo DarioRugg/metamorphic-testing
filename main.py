@@ -1,21 +1,25 @@
 import os
 
-from model import SimpleAutoEncoder, LitAutoEncoder, VAE
-from dataset import ProstateDataModule, NIZODataModule
+from scripts.model import SimpleAutoEncoder, LitAutoEncoder, VAE
+from scripts.dataset import ProstateDataModule, NIZODataModule
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from clearml import Task
+from utils import adjust_paths, connect_hyperparameters
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
+    print(OmegaConf.to_yaml(cfg))
     os.environ["CUDA_VISIBLE_DEVICES"] = cfg.machine.gpu_index
+    adjust_paths(cfg=cfg)
 
     task = Task.init(project_name='e-muse/DeepMS', task_name='test')
+    connect_hyperparameters(clearml_task=task, cfg=cfg)
 
     seed_everything(cfg.seed, workers=True)
 
