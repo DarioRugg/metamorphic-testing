@@ -10,7 +10,7 @@ from omegaconf import DictConfig, OmegaConf
 os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from clearml import Task
-from utils import adjust_paths, connect_hyperparameters
+from scripts.utils import adjust_paths, connect_hyperparameters
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
