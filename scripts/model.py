@@ -7,9 +7,9 @@ import torch
 from torch.optim.lr_scheduler import LinearLR, ReduceLROnPlateau
 
 import itertools
-from dataset import ProstateDataModule
+from scripts.dataset import ProstateDataModule
 
-from logger import ModelWithLoggingFunctions
+from scripts.logger import ModelWithLoggingFunctions
 
 from omegaconf import DictConfig
 

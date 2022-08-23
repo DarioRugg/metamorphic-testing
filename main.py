@@ -10,16 +10,18 @@ from omegaconf import DictConfig, OmegaConf
 os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from clearml import Task
-from scripts.utils import adjust_paths, connect_hyperparameters
+from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
-    print(OmegaConf.to_yaml(cfg))
     os.environ["CUDA_VISIBLE_DEVICES"] = cfg.machine.gpu_index
     adjust_paths(cfg=cfg)
 
     task = Task.init(project_name='e-muse/DeepMS', task_name='test')
     connect_hyperparameters(clearml_task=task, cfg=cfg)
+    calculate_layers_dims(cfg=cfg)
+
+    print(OmegaConf.to_yaml(cfg))
 
     seed_everything(cfg.seed, workers=True)
 
@@ -37,7 +39,7 @@ def main(cfg : DictConfig) -> None:
         model = VAE(input_shape=cfg.dataset.num_features)
         lightning_model = model
     
-    early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=1e-8, patience=5)
+    early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10)
 
     trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=[early_stop_callback], 
                         log_every_n_steps=10, accelerator=cfg.machine.accelerator)

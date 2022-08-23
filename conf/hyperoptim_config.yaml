@@ -1,0 +1,8 @@
+task_id: "ffdc107d450742e5a3f60f69a5fc1267"
+
+optimization:
+  trials: 200
+  time_limit: 360
+
+machine:
+  workers: 8

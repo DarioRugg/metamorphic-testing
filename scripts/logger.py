@@ -6,7 +6,7 @@ from matplotlib import pyplot as plt
 import torch
 import torch.nn.functional as F
 from zmq import device
-from dataset import ProstateDataModule
+from scripts.dataset import ProstateDataModule
 
 
 # class PixelPlotter(pl.Callback):
