@@ -27,36 +27,12 @@ def main(cfg : DictConfig) -> None:
     assert "cross_validation" in cfg.keys(), "this main_cv.py is for cross-validation training"
 
     seed_everything(cfg.seed, workers=True)
-
-
-    if cfg.dataset.name == "prostate":
-        dataset = KFoldProstateDataModule(cfg)
-    elif cfg.dataset.name == "nizo":
-        dataset = NIZODataModule(cfg)
-    
-    if cfg.model.name == "ae":
-        model = SimpleAutoEncoder(cfg, dataset.get_num_features())
-        print(model)
-        lightning_model = LitAutoEncoder(cfg, model, dataset)
-    if cfg.model.name == "vae":
-        model = VAE(input_shape=cfg.dataset.num_features)
-        lightning_model = model
-    
-    callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10)]
-
-    best_loss_logger=BestValLossLogger()
-    callbacks.append(best_loss_logger)
-
-    trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
-                        log_every_n_steps=10, accelerator=cfg.machine.accelerator)
     
     if cfg.train:
         cross_validation_loss = 0
         for k in range(cfg.cross_validation.folds):
-            if cfg.dataset.name == "prostate":
-                dataset = KFoldProstateDataModule(cfg)
-            elif cfg.dataset.name == "nizo":
-                dataset = NIZODataModule(cfg)
+
+            dataset = KFoldProstateDataModule(cfg, k)
             
             if cfg.model.name == "ae":
                 model = SimpleAutoEncoder(cfg, dataset.get_num_features())
@@ -66,15 +42,12 @@ def main(cfg : DictConfig) -> None:
                 model = VAE(input_shape=cfg.dataset.num_features)
                 lightning_model = model
             
-            callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10)]
-
             best_loss_logger=BestValLossLogger()
-            callbacks.append(best_loss_logger)
+            callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
+                         best_loss_logger]
 
             trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
                                 log_every_n_steps=10, accelerator=cfg.machine.accelerator)
-                        
-            dataset.set_current_fold(k)
 
             trainer.fit(lightning_model, datamodule=dataset)
 
@@ -82,8 +55,9 @@ def main(cfg : DictConfig) -> None:
         
         print(f"\n\n ---> KFold Cross-Validation Loss: {cross_validation_loss}\n\n")
 
-    if cfg.test:
-        trainer.test(lightning_model, datamodule=dataset)
+    # no point in testing the last model, we should test one picked at random
+    # if cfg.test:
+    #     trainer.test(lightning_model, datamodule=dataset)
 
 
 if __name__ == "__main__":

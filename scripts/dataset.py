@@ -117,10 +117,10 @@ class ProstateDataModule(BaseDataModule):
 
 
 class KFoldProstateDataModule(ProstateDataModule):
-    def __init__(self, cfg: DictConfig):
+    def __init__(self, cfg: DictConfig, k=None):
         super().__init__(cfg)
         self.kfold = KFold(n_splits=cfg.cross_validation.folds, shuffle=True, random_state=1234)
-        self.k = None
+        self.k = k
 
     def set_current_fold(self, k):
         self.k = k
