@@ -10,5 +10,8 @@ seed: 1234
 test: true
 train: true
 
+cross_validation:
+  folds: 10
+
 machine:
   workers: 8

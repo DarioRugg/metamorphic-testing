@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader
 from sklearn import preprocessing
 from omegaconf import DictConfig
 from pathlib import Path
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import KFold, train_test_split
 import h5py
 
 
@@ -114,4 +114,28 @@ class ProstateDataModule(BaseDataModule):
             with h5py.File(self.data_path,'r') as f:
                 self.features = np.array(f["mzArray"], dtype=np.float32)
         return super().get_num_features()
-        
+
+
+class KFoldProstateDataModule(ProstateDataModule):
+    def __init__(self, cfg: DictConfig):
+        super().__init__(cfg)
+        self.kfold = KFold(n_splits=cfg.cross_validation.folds, shuffle=True, random_state=1234)
+        self.k = None
+
+    def set_current_fold(self, k):
+        self.k = k
+
+    def setup(self, stage=None):
+        with h5py.File(self.data_path,'r') as f:
+            train_val_dataset = np.transpose(np.array(f["Data"], dtype=np.float32))  # spectral information.
+            self.features = np.array(f["mzArray"], dtype=np.float32)
+            train_val_dataset = preprocessing.normalize(train_val_dataset)  # l2 normalize each sample independently
+            
+            train_val_dataset, test_dataset = train_test_split(train_val_dataset, test_size=0.1)
+
+            if stage == "fit":
+                train_idx, val_idx = list(self.kfold.split(train_val_dataset))[self.k]
+                self.train, self.val = train_val_dataset[train_idx], train_val_dataset[val_idx]
+            elif stage == "test":
+                self.test = test_dataset
+            

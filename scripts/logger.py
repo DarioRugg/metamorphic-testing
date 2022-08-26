@@ -202,3 +202,23 @@ class ModelWithLoggingFunctionsOld(pl.LightningModule):
         #plt.savefig(self.plots_path / "pixels_comparison_plot_epoch_{}.png".format(epoch))
         #plt.close()
         plt.show()
+    
+
+class BestValLossLogger(pl.Callback):
+    def __init__(self) -> None:
+        super().__init__()
+        self.best_val_loss = None
+    
+    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage = None) -> None:
+        self.best_val_loss = None
+        return super().setup(trainer, pl_module, stage)
+    
+    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
+        if self.best_val_loss is None:
+            self.best_val_loss = trainer.callback_metrics["val_loss"]
+        else:
+            self.best_val_loss = min(self.best_val_loss, trainer.callback_metrics["val_loss"])
+        return super().on_validation_end(trainer, pl_module)
+    
+    def get_best_val_loss(self):
+        return self.best_val_loss

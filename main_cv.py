@@ -24,15 +24,13 @@ def main(cfg : DictConfig) -> None:
     calculate_layers_dims(cfg=cfg)
 
     print(OmegaConf.to_yaml(cfg))
+    assert "cross_validation" in cfg.keys(), "this main_cv.py is for cross-validation training"
 
     seed_everything(cfg.seed, workers=True)
 
 
     if cfg.dataset.name == "prostate":
-        if "cross_validation" not in cfg.keys():
-            dataset = ProstateDataModule(cfg)
-        else:
-            dataset = KFoldProstateDataModule(cfg)
+        dataset = KFoldProstateDataModule(cfg)
     elif cfg.dataset.name == "nizo":
         dataset = NIZODataModule(cfg)
     
@@ -46,26 +44,43 @@ def main(cfg : DictConfig) -> None:
     
     callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10)]
 
-    if "cross_validation" in cfg.keys():
-        best_loss_logger=BestValLossLogger()
-        callbacks.append(best_loss_logger)
+    best_loss_logger=BestValLossLogger()
+    callbacks.append(best_loss_logger)
 
     trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
                         log_every_n_steps=10, accelerator=cfg.machine.accelerator)
     
     if cfg.train:
-        if "cross_validation" not in cfg.keys():
-            trainer.fit(lightning_model, datamodule=dataset)
-        else:
-            cross_validation_loss = 0
-            for k in range(cfg.cross_validation.folds):
-                dataset.set_current_fold(k)
-
-                trainer.fit(lightning_model, datamodule=dataset)
-
-                cross_validation_loss += best_loss_logger.get_best_val_loss()/cfg.cross_validation.folds
+        cross_validation_loss = 0
+        for k in range(cfg.cross_validation.folds):
+            if cfg.dataset.name == "prostate":
+                dataset = KFoldProstateDataModule(cfg)
+            elif cfg.dataset.name == "nizo":
+                dataset = NIZODataModule(cfg)
             
-            print(f"\n\n ---> KFold Cross-Validation Loss: {cross_validation_loss}\n\n")
+            if cfg.model.name == "ae":
+                model = SimpleAutoEncoder(cfg, dataset.get_num_features())
+                print(model)
+                lightning_model = LitAutoEncoder(cfg, model, dataset)
+            if cfg.model.name == "vae":
+                model = VAE(input_shape=cfg.dataset.num_features)
+                lightning_model = model
+            
+            callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10)]
+
+            best_loss_logger=BestValLossLogger()
+            callbacks.append(best_loss_logger)
+
+            trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
+                                log_every_n_steps=10, accelerator=cfg.machine.accelerator)
+                        
+            dataset.set_current_fold(k)
+
+            trainer.fit(lightning_model, datamodule=dataset)
+
+            cross_validation_loss += best_loss_logger.get_best_val_loss()/cfg.cross_validation.folds
+        
+        print(f"\n\n ---> KFold Cross-Validation Loss: {cross_validation_loss}\n\n")
 
     if cfg.test:
         trainer.test(lightning_model, datamodule=dataset)
