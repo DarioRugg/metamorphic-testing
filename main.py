@@ -1,9 +1,7 @@
 import os
-from subprocess import call
-from scripts.logger import BestValLossLogger
 
 from scripts.model import SimpleAutoEncoder, LitAutoEncoder, VAE
-from scripts.dataset import KFoldProstateDataModule, ProstateDataModule, NIZODataModule
+from scripts.dataset import ProstateDataModule, NIZODataModule
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
@@ -29,10 +27,7 @@ def main(cfg : DictConfig) -> None:
 
 
     if cfg.dataset.name == "prostate":
-        if "cross_validation" not in cfg.keys():
-            dataset = ProstateDataModule(cfg)
-        else:
-            dataset = KFoldProstateDataModule(cfg)
+        dataset = ProstateDataModule(cfg)
     elif cfg.dataset.name == "nizo":
         dataset = NIZODataModule(cfg)
     
@@ -44,28 +39,13 @@ def main(cfg : DictConfig) -> None:
         model = VAE(input_shape=cfg.dataset.num_features)
         lightning_model = model
     
-    callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10)]
+    early_stop_callback = EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10)
 
-    if "cross_validation" in cfg.keys():
-        best_loss_logger=BestValLossLogger()
-        callbacks.append(best_loss_logger)
-
-    trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
+    trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=[early_stop_callback], 
                         log_every_n_steps=10, accelerator=cfg.machine.accelerator)
     
     if cfg.train:
-        if "cross_validation" not in cfg.keys():
-            trainer.fit(lightning_model, datamodule=dataset)
-        else:
-            cross_validation_loss = 0
-            for k in range(cfg.cross_validation.folds):
-                dataset.set_current_fold(k)
-
-                trainer.fit(lightning_model, datamodule=dataset)
-
-                cross_validation_loss += best_loss_logger.get_best_val_loss()/cfg.cross_validation.folds
-            
-            print(f"\n\n ---> KFold Cross-Validation Loss: {cross_validation_loss}\n\n")
+        trainer.fit(lightning_model, datamodule=dataset)
 
     if cfg.test:
         trainer.test(lightning_model, datamodule=dataset)
