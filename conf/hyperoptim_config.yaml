@@ -5,4 +5,4 @@ optimization:
   time_limit: 360
 
 machine:
-  workers: 8
+  workers: 2

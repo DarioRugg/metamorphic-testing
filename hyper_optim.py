@@ -12,6 +12,9 @@ from omegaconf import DictConfig, OmegaConf
 @hydra.main(version_base=None, config_path="conf", config_name="hyperoptim_config")
 def main(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
+    execution_queue = 'rgai-gpu-01-2080ti:1'
+
+    Task.add_requirements("requirements.txt")
 
     # Connecting ClearML with the current process,
     # from here on everything is logged automatically
@@ -40,6 +43,7 @@ def main(cfg : DictConfig) -> None:
         # now we decide if we want to maximize it or minimize it (accuracy we maximize)
         objective_metric_sign='min',
 
+        execution_queue=execution_queue,
 
         # setting optimizer 
         optimizer_class=OptimizerBOHB,
