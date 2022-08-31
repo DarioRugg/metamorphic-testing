@@ -19,8 +19,6 @@ def main(cfg : DictConfig) -> None:
     os.environ["CUDA_VISIBLE_DEVICES"] = cfg.machine.gpu_index
     adjust_paths(cfg=cfg)
 
-    Task.add_requirements("requirements.txt")
-
     task = Task.init(project_name='e-muse/DeepMS', task_name='test')
     connect_hyperparameters(clearml_task=task, cfg=cfg)
     calculate_layers_dims(cfg=cfg)

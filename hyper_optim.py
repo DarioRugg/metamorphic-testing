@@ -1,4 +1,5 @@
 import os
+import sys
 from clearml import Task
 from clearml.automation import (
     DiscreteParameterRange, HyperParameterOptimizer, UniformParameterRange, LogUniformParameterRange,
@@ -14,13 +15,20 @@ def main(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
     execution_queue = 'rgai-gpu-01-2080ti:1'
 
-    Task.add_requirements("requirements.txt")
-
     # Connecting ClearML with the current process,
     # from here on everything is logged automatically
-    task = Task.init(project_name='e-muse/DeepMS',
-                    task_name='Hyper-Parameter Optimization',
-                    task_type=Task.TaskTypes.optimizer)
+    task = Task.init(
+        project_name='e-muse/DeepMS',
+        task_name='Hyper-Parameter Optimization'
+    )
+    task.set_base_docker(
+        docker_image='clearml-python-v3x:latest',
+        docker_arguments='--env GIT_SSL_NO_VERIFY=true \
+                        --env CLEARML_AGENT_GIT_USER=glbot-deepms \
+                        --env CLEARML_AGENT_GIT_PASS=glpat-CYE1apje2yyBhTHtVXFj \
+                        --env LOCAL_PYTHON=python{}.{}'.format(sys.version_info.major,
+                                                                sys.version_info.minor),
+    )
 
     hyper_parameters=[
             UniformIntegerParameterRange('General/num_layers', min_value=2, max_value=9),
