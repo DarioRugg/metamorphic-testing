@@ -38,6 +38,9 @@ def main(cfg : DictConfig) -> None:
             DiscreteParameterRange('General/loss', values=["mse"]),
             DiscreteParameterRange('General/batch_size', values=[32, 64, 128, 256])
         ]
+    
+    # ensuring "fast_dev_run" is False
+    hyper_parameters.append(DiscreteParameterRange('dev_config/fast_dev_run', values=[False]))
 
 
     # Example use case:

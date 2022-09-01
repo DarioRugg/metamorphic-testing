@@ -14,7 +14,7 @@ from omegaconf import DictConfig, OmegaConf
 os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from clearml import Task
-from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims
+from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims, dev_test_param_overwrite
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
@@ -23,6 +23,8 @@ def main(cfg : DictConfig) -> None:
 
     task = Task.init(project_name='e-muse/DeepMS', task_name='test')
     connect_hyperparameters(clearml_task=task, cfg=cfg)
+    if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
+
     calculate_layers_dims(cfg=cfg)
 
     print(OmegaConf.to_yaml(cfg))
@@ -49,7 +51,7 @@ def main(cfg : DictConfig) -> None:
                 lightning_model = model
 
             trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
-                                log_every_n_steps=10, accelerator=cfg.machine.accelerator)
+                                log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
             trainer.fit(lightning_model, datamodule=dataset)
 
@@ -60,7 +62,7 @@ def main(cfg : DictConfig) -> None:
     # no point in testing the last model, we should test one picked at random
     if cfg.test:
 
-        checkpoint_callback = ModelCheckpoint(monitor="val_loss", save_weights_only=True)
+        checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", monitor="val_loss", save_weights_only=True)
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
                     checkpoint_callback]
 
@@ -77,7 +79,7 @@ def main(cfg : DictConfig) -> None:
         
 
         trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
-                            log_every_n_steps=10, accelerator=cfg.machine.accelerator)
+                            log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
         trainer.fit(lightning_model, datamodule=dataset)
 

@@ -2,6 +2,8 @@ from clearml import Task
 from omegaconf import OmegaConf
 from pathlib import Path
 
+from sqlalchemy import false
+
 def adjust_paths(cfg: OmegaConf):
     cfg.dataset.data_path = Path(cfg.dataset.data_path)
 
@@ -23,6 +25,21 @@ def connect_hyperparameters(clearml_task: Task, cfg: OmegaConf):
     cfg.model.learning_rate = hyperparams["learning_rate"]
     cfg.model.loss = hyperparams["loss"]
     cfg.dataset.batch_size = hyperparams["batch_size"]
+
+    # parameters used to speedup the first execution, then the agent will set the actual value.
+    fake_params = {
+            "fast_dev_run": cfg.fast_dev_run,
+        }
+
+    fake_params = clearml_task.connect(fake_params, name="dev_config")
+
+    cfg.fast_dev_run = fake_params["fast_dev_run"]
+
+def dev_test_param_overwrite(cfg: OmegaConf):
+    cfg.test=False
+    cfg.model.num_layers=1
+    cfg.model.start_dim=32
+    cfg.cross_validation.folds=2
 
 def calculate_layers_dims(cfg: OmegaConf):
     if cfg.model.num_layers == 1:
