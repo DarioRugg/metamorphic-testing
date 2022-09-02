@@ -19,29 +19,25 @@ from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layer
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
     os.environ["CUDA_VISIBLE_DEVICES"] = cfg.machine.gpu_index
+
     adjust_paths(cfg=cfg)
 
     task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name)
 
-    # task.set_base_docker(
-    #     docker_image='rugg/deepms:latest',
-    #     docker_arguments='--env GIT_SSL_NO_VERIFY=true \
-    #                     --env CLEARML_AGENT_GIT_USER=glbot-deepms \
-    #                     --env CLEARML_AGENT_GIT_PASS=glpat-CYE1apje2yyBhTHtVXFj \
-    #                     --env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true'
-    # )
-
     task.set_base_docker(
         docker_image='rugg/deepms:latest',
-        docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true'
+        docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true \
+            --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/'
+            # --volume /srv/nfs-data/ruggeri/datasets/DeepMS/:/data/'
+            # --mount type=bind,source=/srv/nfs-data/ruggeri/DeepMS/assets,target=/root/.clearml/venvs-builds/3.9/task_repository/DeepMS.git/'
     )
 
     connect_hyperparameters(clearml_task=task, cfg=cfg)
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
 
-    calculate_layers_dims(cfg=cfg)
-
+    calculate_layers_dims(cfg=cfg)    
     print(OmegaConf.to_yaml(cfg))
+    
     assert "cross_validation" in cfg.keys(), "this main_cv.py is for cross-validation training"
 
     seed_everything(cfg.seed, workers=True)
