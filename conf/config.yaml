@@ -5,6 +5,8 @@ defaults:
   - machine: gpu
   - logs: prostate
 
+task_name: "Base task"
+
 seed: 1234
 
 test: true

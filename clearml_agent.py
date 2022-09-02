@@ -22,25 +22,6 @@ def main(cfg : DictConfig) -> None:
         task_name='Hyper-Parameter Optimization',
         task_type=Task.TaskTypes.optimizer
     )
-    # task.set_base_docker(
-    #     docker_image='clearml-python-v3x:latest',
-    #     docker_arguments='--env GIT_SSL_NO_VERIFY=true \
-    #                     --env CLEARML_AGENT_GIT_USER=glbot-deepms \
-    #                     --env CLEARML_AGENT_GIT_PASS=glpat-CYE1apje2yyBhTHtVXFj \
-    #                     --env LOCAL_PYTHON=python{}.{}'.format(sys.version_info.major,
-    #                                                             sys.version_info.minor),
-    # )
-
-    # with my container
-    # task.set_base_docker(
-    #     docker_image='rugg/deepms:latest',
-    #     docker_arguments='--env GIT_SSL_NO_VERIFY=true \
-    #                     --env CLEARML_AGENT_GIT_USER=glbot-deepms \
-    #                     --env CLEARML_AGENT_GIT_PASS=glpat-CYE1apje2yyBhTHtVXFj \
-    #                     --env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true' \
-    #                     # --env LOCAL_PYTHON=python{}.{}'.format(sys.version_info.major,
-    #                     #                                         sys.version_info.minor),
-    # )
 
     hyper_parameters=[
             UniformIntegerParameterRange('General/num_layers', min_value=2, max_value=9),
