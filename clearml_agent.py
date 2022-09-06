@@ -32,8 +32,9 @@ def main(cfg : DictConfig) -> None:
             DiscreteParameterRange('General/batch_size', values=[32, 64, 128, 256])
         ]
     
-    # ensuring "fast_dev_run" is False
+    # ensuring "gpu_index" is False
     hyper_parameters.append(DiscreteParameterRange('dev_config/fast_dev_run', values=[False]))
+    hyper_parameters.append(DiscreteParameterRange('dev_config/gpu_index', values=["0"]))
 
 
     # Example use case:
@@ -41,16 +42,15 @@ def main(cfg : DictConfig) -> None:
         # This is the experiment we want to optimize
         base_task_id=cfg.task_id,
         hyper_parameters=hyper_parameters,
-        # this is the objective metric we want to maximize/minimize
-        objective_metric_title='val_loss',
-        objective_metric_series='val_loss',
-        # now we decide if we want to maximize it or minimize it (accuracy we maximize)
+        
+        objective_metric_title='summary',
+        objective_metric_series='cross-validation loss',
         objective_metric_sign='min',
 
         execution_queue=execution_queue,
 
         # setting optimizer 
-        optimizer_class=OptimizerBOHB,
+        optimizer_class=OptimizerOptuna,
 
         max_number_of_concurrent_tasks=cfg.machine.workers,  
         optimization_time_limit=cfg.optimization.time_limit, 

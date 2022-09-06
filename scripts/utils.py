@@ -27,13 +27,15 @@ def connect_hyperparameters(clearml_task: Task, cfg: OmegaConf):
     cfg.dataset.batch_size = hyperparams["batch_size"]
 
     # parameters used to speedup the first execution, then the agent will set the actual value.
-    fake_params = {
+    dev_params = {
             "fast_dev_run": cfg.fast_dev_run,
+            "gpu_index": cfg.machine.gpu_index
         }
 
-    fake_params = clearml_task.connect(fake_params, name="dev_config")
+    dev_params = clearml_task.connect(dev_params, name="dev_config")
 
-    cfg.fast_dev_run = fake_params["fast_dev_run"]
+    cfg.fast_dev_run = dev_params["fast_dev_run"]
+    cfg.machine.gpu_index = dev_params["gpu_index"]
 
 def dev_test_param_overwrite(cfg: OmegaConf):
     cfg.test=False

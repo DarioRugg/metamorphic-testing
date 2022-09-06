@@ -1,6 +1,10 @@
 import os
 import random
 from subprocess import call
+
+from matplotlib import pyplot as plt
+import seaborn as sns
+import numpy as np
 from scripts.logger import BestValLossLogger
 
 from scripts.model import SimpleAutoEncoder, LitAutoEncoder, VAE
@@ -18,16 +22,17 @@ from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layer
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
-    os.environ["CUDA_VISIBLE_DEVICES"] = cfg.machine.gpu_index
 
     adjust_paths(cfg=cfg)
 
-    task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name)
+    task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name, reuse_last_task_id="6ee684e152c34e18942f4b9e5f44b2ec")
+    clearml_logger = task.get_logger()
 
     task.set_base_docker(
         docker_image='rugg/deepms:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true \
-            --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/'
+            --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
+            --ipc=host'
             # --volume /srv/nfs-data/ruggeri/datasets/DeepMS/:/data/'
             # --mount type=bind,source=/srv/nfs-data/ruggeri/DeepMS/assets,target=/root/.clearml/venvs-builds/3.9/task_repository/DeepMS.git/'
     )
@@ -35,15 +40,17 @@ def main(cfg : DictConfig) -> None:
     connect_hyperparameters(clearml_task=task, cfg=cfg)
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
 
-    calculate_layers_dims(cfg=cfg)    
+    calculate_layers_dims(cfg=cfg)
     print(OmegaConf.to_yaml(cfg))
     
     assert "cross_validation" in cfg.keys(), "this main_cv.py is for cross-validation training"
 
     seed_everything(cfg.seed, workers=True)
     
+    os.environ["CUDA_VISIBLE_DEVICES"] = cfg.machine.gpu_index
+    
     if cfg.train:
-        cross_validation_loss = 0
+        cross_validation_losses = []
         for k in range(cfg.cross_validation.folds):
             
             best_loss_logger=BestValLossLogger()
@@ -60,14 +67,23 @@ def main(cfg : DictConfig) -> None:
                 model = VAE(input_shape=cfg.dataset.num_features)
                 lightning_model = model
 
-            trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
+            trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, logger=[clearml_logger],
                                 log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
             trainer.fit(lightning_model, datamodule=dataset)
 
-            cross_validation_loss += best_loss_logger.get_best_val_loss()/cfg.cross_validation.folds
+            cross_validation_losses.append(best_loss_logger.get_best_val_loss().cpu().item())
+
+
+        fig = plt.figure()
+        sns.kdeplot(np.array(cross_validation_losses), bw=0.5)
+        clearml_logger.report_matplotlib_figure(title="Cross-validation losses distribution", series="losses distribution", figure=fig)
+        fig.clear()
+
         
-        print(f"\n\n ---> KFold Cross-Validation Loss: {cross_validation_loss}\n\n")
+        clearml_logger.report_single_value("cross-validation loss", np.mean(cross_validation_losses))
+        
+        print(f"\n\n ---> KFold Cross-Validation Loss: {np.mean(cross_validation_losses)}\n\n")
 
     # no point in testing the last model, we should test one picked at random
     if cfg.test:
