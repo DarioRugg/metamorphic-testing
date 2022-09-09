@@ -15,7 +15,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
-os.environ["HYDRA_FULL_ERROR"] = "1"
+# os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from clearml import Task
 from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims, dev_test_param_overwrite
@@ -32,8 +32,8 @@ def main(cfg : DictConfig) -> None:
         docker_image='rugg/deepms:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true \
             --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
-            --shm-size=2g'
-            # --ipc=host'
+            --ipc=host'
+            # --shm-size=2g'
             # --volume /srv/nfs-data/ruggeri/datasets/DeepMS/:/data/'
             # --mount type=bind,source=/srv/nfs-data/ruggeri/DeepMS/assets,target=/root/.clearml/venvs-builds/3.9/task_repository/DeepMS.git/'
     )
@@ -68,7 +68,7 @@ def main(cfg : DictConfig) -> None:
                 model = VAE(input_shape=cfg.dataset.num_features)
                 lightning_model = model
 
-            trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, logger=[clearml_logger],
+            trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks,
                                 log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
             trainer.fit(lightning_model, datamodule=dataset)
