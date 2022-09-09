@@ -7,7 +7,6 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
-os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from clearml import Task
 from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims

@@ -1,8 +1,9 @@
-task_id: "6ee684e152c34e18942f4b9e5f44b2ec"
+task_id: "c5bd58f65280442895b320a45269dc66"
 
 optimization:
-  trials: 200
+  trials: 2
   time_limit: 360
 
 machine:
   workers: 2
+  gpu_index: "2"

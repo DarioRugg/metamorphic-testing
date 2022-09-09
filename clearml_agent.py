@@ -13,7 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 @hydra.main(version_base=None, config_path="conf", config_name="hyperoptim_config")
 def main(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
-    execution_queue = 'rgai-gpu-01-2080ti:1'
+    execution_queue = f'rgai-gpu-01-2080ti:{cfg.machine.gpu_index}'
 
     # Connecting ClearML with the current process,
     # from here on everything is logged automatically
@@ -34,7 +34,7 @@ def main(cfg : DictConfig) -> None:
     
     # ensuring "gpu_index" is False
     hyper_parameters.append(DiscreteParameterRange('dev_config/fast_dev_run', values=[False]))
-    hyper_parameters.append(DiscreteParameterRange('dev_config/gpu_index', values=["0"]))
+    hyper_parameters.append(DiscreteParameterRange('dev_config/gpu_index', values=cfg.machine.gpu_index))
 
 
     # Example use case:

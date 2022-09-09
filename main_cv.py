@@ -15,7 +15,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
-# os.environ["HYDRA_FULL_ERROR"] = "1"
 
 from clearml import Task
 from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims, dev_test_param_overwrite
@@ -25,7 +24,7 @@ def main(cfg : DictConfig) -> None:
 
     adjust_paths(cfg=cfg)
 
-    task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name, reuse_last_task_id="6ee684e152c34e18942f4b9e5f44b2ec")
+    task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name, reuse_last_task_id="66b145822a4d402daefa08ebe4263eb6")
     clearml_logger = task.get_logger()
 
     task.set_base_docker(
