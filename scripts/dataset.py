@@ -27,16 +27,16 @@ class BaseDataModule(pl.LightningDataModule):
         self.num_workers=cfg.machine.workers
 
     def train_dataloader(self):
-        return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True)
+        return DataLoader(self.train, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True, persistent_workers=True)
 
     def predict_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers)
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers, persistent_workers=True)
     
     def test_dataloader(self):
-        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers)
+        return DataLoader(self.test, batch_size=self.batch_size, num_workers=self.num_workers, persistent_workers=True)
     
     def val_dataloader(self):
-        return DataLoader(self.val, batch_size=self.batch_size, num_workers=self.num_workers)
+        return DataLoader(self.val, batch_size=self.batch_size, num_workers=self.num_workers, persistent_workers=True)
 
     def get_num_features(self) -> int:
         return len(self.features)
@@ -91,10 +91,10 @@ class NIZODataModule(BaseDataModule):
         self.x = torch.tensor(data, dtype=torch.float32)
 
     def train_dataloader(self):
-        return DataLoader(self.x, batch_size=self.batch_size, num_workers=8, shuffle=True)
+        return DataLoader(self.x, batch_size=self.batch_size, num_workers=8, shuffle=True, persistent_workers=True)
 
     def predict_dataloader(self):
-        return DataLoader(self.x, batch_size=self.batch_size, num_workers=8)
+        return DataLoader(self.x, batch_size=self.batch_size, num_workers=8, persistent_workers=True)
 
     def get_num_features(self) -> int:
         return self.num_features

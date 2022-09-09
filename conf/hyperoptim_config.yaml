@@ -1,4 +1,4 @@
-task_id: "c5bd58f65280442895b320a45269dc66"
+task_id: "21bdb6bbd71c46c2acf75046063f6517"
 
 optimization:
   trials: 2
@@ -6,4 +6,4 @@ optimization:
 
 machine:
   workers: 2
-  gpu_index: "2"
+  gpu_index: 2

@@ -1,4 +1,3 @@
-import os
 import random
 from subprocess import call
 
@@ -19,6 +18,8 @@ from omegaconf import DictConfig, OmegaConf
 from clearml import Task
 from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims, dev_test_param_overwrite
 
+import torch
+
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
 
@@ -26,6 +27,8 @@ def main(cfg : DictConfig) -> None:
 
     task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name, reuse_last_task_id="66b145822a4d402daefa08ebe4263eb6")
     clearml_logger = task.get_logger()
+    
+    print(" ----> GPUs: ", torch.cuda.device_count())
 
     task.set_base_docker(
         docker_image='rugg/deepms:latest',
@@ -46,9 +49,7 @@ def main(cfg : DictConfig) -> None:
     assert "cross_validation" in cfg.keys(), "this main_cv.py is for cross-validation training"
 
     seed_everything(cfg.seed, workers=True)
-    
-    os.environ["CUDA_VISIBLE_DEVICES"] = cfg.machine.gpu_index
-    
+
     if cfg.train:
         cross_validation_losses = []
         for k in range(cfg.cross_validation.folds):
@@ -67,7 +68,7 @@ def main(cfg : DictConfig) -> None:
                 model = VAE(input_shape=cfg.dataset.num_features)
                 lightning_model = model
 
-            trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks,
+            trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
                                 log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
             trainer.fit(lightning_model, datamodule=dataset)
@@ -104,7 +105,7 @@ def main(cfg : DictConfig) -> None:
             lightning_model = model
         
 
-        trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, 
+        trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
                             log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
         trainer.fit(lightning_model, datamodule=dataset)

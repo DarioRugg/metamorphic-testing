@@ -34,7 +34,7 @@ def main(cfg : DictConfig) -> None:
     
     # ensuring "gpu_index" is False
     hyper_parameters.append(DiscreteParameterRange('dev_config/fast_dev_run', values=[False]))
-    hyper_parameters.append(DiscreteParameterRange('dev_config/gpu_index', values=cfg.machine.gpu_index))
+    hyper_parameters.append(DiscreteParameterRange('dev_config/gpu_index', values=[0]))
 
 
     # Example use case:
