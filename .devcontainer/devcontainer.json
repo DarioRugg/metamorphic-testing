@@ -5,8 +5,8 @@
 
 	"image": "rugg/deepms:latest",
 
-	// "runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--shm-size=1g"]
-	"runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--ipc=host"],
+	"runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--shm-size=2g"]
+	// "runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--ipc=host"],
 
 	"mounts": ["source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/,type=bind"]
 }

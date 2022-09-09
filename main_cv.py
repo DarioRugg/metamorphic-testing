@@ -32,7 +32,8 @@ def main(cfg : DictConfig) -> None:
         docker_image='rugg/deepms:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true \
             --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
-            --ipc=host'
+            --shm-size=2g'
+            # --ipc=host'
             # --volume /srv/nfs-data/ruggeri/datasets/DeepMS/:/data/'
             # --mount type=bind,source=/srv/nfs-data/ruggeri/DeepMS/assets,target=/root/.clearml/venvs-builds/3.9/task_repository/DeepMS.git/'
     )
