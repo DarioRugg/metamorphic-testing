@@ -3,7 +3,7 @@
 {
 	"name": "DeepMS container",
 
-	"image": "rugg/deepms:latest",
+	"image": "rugg/deepms:torchlight1.9",
 
 	// "runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--shm-size=2g"],
 	"runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--ipc=host"],

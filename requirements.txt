@@ -8,3 +8,7 @@ clearml
 optuna
 hpbandster
 seaborn
+sklearn
+# torch==1.8.1
+pytorch-lightning==1.6.5
+  

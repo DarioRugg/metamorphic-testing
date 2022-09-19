@@ -31,7 +31,7 @@ def main(cfg : DictConfig) -> None:
     print(" ----> GPUs: ", torch.cuda.device_count())
 
     task.set_base_docker(
-        docker_image='rugg/deepms:latest',
+        docker_image='rugg/deepms:torchlight1.9',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true \
             --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
             --ipc=host'

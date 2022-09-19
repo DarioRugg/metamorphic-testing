@@ -4,7 +4,8 @@ from collections import OrderedDict
 import pytorch_lightning as pl
 from torch import nn
 import torch
-from torch.optim.lr_scheduler import LinearLR, ReduceLROnPlateau
+# from torch.optim.lr_scheduler import LinearLR, ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import itertools
 from scripts.dataset import ProstateDataModule
@@ -73,10 +74,11 @@ class LitAutoEncoder(ModelWithLoggingFunctions):
 
     def configure_optimizers(self):
         optim = torch.optim.Adam(self.parameters(), lr=self.lr)
-        linear_sched = {"scheduler": LinearLR(optim, start_factor=0.3333333333333333, total_iters=8), "monitor": "val_loss"}
+        # linear_sched = {"scheduler": LinearLR(optim, start_factor=0.3333333333333333, total_iters=8), "monitor": "val_loss"}
         plateau_sched = {"scheduler": ReduceLROnPlateau(optim, mode='min', factor=0.05, patience=4, threshold=1e-5), "monitor": "val_loss"}
         # return {"optimizer": optim, "scheduler": [linear_sched, plateau_sched], "monitor": "val_loss"}
-        return [optim], [linear_sched, plateau_sched]
+        # return [optim], [linear_sched, plateau_sched]
+        return [optim], [plateau_sched]
 
     def training_step(self, batch, batch_idx):
         x = batch
