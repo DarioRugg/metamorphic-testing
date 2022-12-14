@@ -4,8 +4,8 @@ import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 import torch
 import torch.nn.functional as F
-from zmq import device
 from scripts.dataset import ProstateDataModule
+from sklearn.metrics import mean_squared_error
 
 
 # class PixelPlotter(pl.Callback):
@@ -103,6 +103,55 @@ class CustomLogger(pl.Callback):
         plt.savefig("./assets/img/logs/mse")
         plt.close()
 
+# For later
+class PixelsPlotter(pl.Callback):
+    def __init__(self, cfg: DictConfig, model: pl.LightningModule, dataset: ProstateDataModule):
+        super().__init__()
+        self.cfg = cfg
+        self.ae_model = model
+        self.dataset = dataset
+
+    def training_epoch_end(self,outputs):
+        if self.current_epoch != 0 and self.current_epoch%4 == 0:
+            self._plot_pixels(self.dataset.train, self.cfg.logs.train_pixels, self.dataset.features, "train")
+        return super().training_epoch_end(outputs)
+
+    def validation_epoch_end(self,outputs):
+        if self.current_epoch != 0 and self.current_epoch%4 == 0:
+            self._plot_pixels(self.dataset.val, self.cfg.logs.val_pixels, self.dataset.features, "val")
+        return super().validation_epoch_end(outputs)
+    
+    def test_epoch_end(self, outputs):
+        self._plot_pixels(self.dataset.test, self.cfg.logs.test_pixels, self.dataset.features, "test")
+        return super().test_epoch_end(outputs)
+
+    def _plot_pixels(self, data: np.ndarray, pixels_to_log: list, features, split: str):
+
+        pixels = torch.from_numpy(data[pixels_to_log, :]).to(self.device)
+        pixels_hat = self(pixels)
+        
+         #  .to("cpu").detach().numpy()
+
+        fig, axs = plt.subplots(2, len(pixels_to_log)//2,
+                                    figsize=(7.5 * len(pixels_to_log)//2, 5 * 2))
+        fig.subplots_adjust(top=0.8)
+        plt.suptitle("{}\ncomparison plot".format(split))
+
+        for ax, pixel_index, pixel, pixel_hat in zip(axs.flat, pixels_to_log, pixels, pixels_hat):
+            ax.set_title("pixel {}\nMSE: {:.5f}".format(pixel_index, F.mse_loss(pixel, pixel_hat)))
+            print("pixel {}\nMSE: {:.5f}".format(pixel_index, F.mse_loss(pixel, pixel_hat)))
+            ax.plot(features, pixel.to("cpu").detach(), label="original", alpha=0.7)
+            ax.plot(features, pixel_hat.to("cpu").detach(), label="reconstructed", alpha=0.7)
+        
+        axs[0, 0].legend()
+        for ax in axs[-1, :].flat:
+            ax.set_xlabel('mz')
+        for ax in axs[:, 0].flat:
+            ax.set_ylabel('i')
+
+        #plt.savefig(self.plots_path / "pixels_comparison_plot_epoch_{}.png".format(epoch))
+        plt.show()
+        plt.close()
 
 class ModelWithLoggingFunctions(pl.LightningModule):
     def __init__(self, cfg: DictConfig, dataset: ProstateDataModule):
@@ -125,9 +174,9 @@ class ModelWithLoggingFunctions(pl.LightningModule):
         return super().test_epoch_end(outputs)
 
     def _plot_pixels(self, data: np.ndarray, pixels_to_log: list, features, split: str):
-        pixels = data[pixels_to_log, :]
 
-        pixels_hat = self(torch.from_numpy(pixels).to(f'cuda:0')).to("cpu").detach().numpy()
+        pixels = data[pixels_to_log, :]
+        pixels_hat = self(torch.from_numpy(pixels).to(self.device)).to("cpu").detach().numpy()
 
         fig, axs = plt.subplots(2, len(pixels_to_log)//2,
                                     figsize=(7.5 * len(pixels_to_log)//2, 5 * 2))
@@ -135,7 +184,7 @@ class ModelWithLoggingFunctions(pl.LightningModule):
         plt.suptitle("{}\ncomparison plot".format(split))
 
         for ax, pixel_index, pixel, pixel_hat in zip(axs.flat, pixels_to_log, pixels, pixels_hat):
-            ax.set_title("pixel {}\nMSE: {:.5f}".format(pixel_index, F.mse_loss(torch.from_numpy(pixel), torch.from_numpy(pixel_hat))))
+            ax.set_title("pixel {}\nMSE: {:.3e}".format(pixel_index, mean_squared_error(pixel, pixel_hat)))
             ax.plot(features, pixel, label="original", alpha=0.7)
             ax.plot(features, pixel_hat, label="reconstructed", alpha=0.7)
         
