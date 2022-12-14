@@ -25,13 +25,13 @@ def main(cfg : DictConfig) -> None:
 
     adjust_paths(cfg=cfg)
 
-    task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name, reuse_last_task_id="66b145822a4d402daefa08ebe4263eb6")
+    Task.set_offline(cfg.task_name == "offline_test")
+
+    task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name)
     clearml_logger = task.get_logger()
-    
-    print(" ----> GPUs: ", torch.cuda.device_count())
 
     task.set_base_docker(
-        docker_image='rugg/deepms:torchlight1.9',
+        docker_image='rugg/deepms:torchlight1.8',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true \
             --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
             --ipc=host'
@@ -68,7 +68,7 @@ def main(cfg : DictConfig) -> None:
                 model = VAE(input_shape=cfg.dataset.num_features)
                 lightning_model = model
 
-            trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
+            trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
                                 log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
             trainer.fit(lightning_model, datamodule=dataset)
@@ -93,7 +93,8 @@ def main(cfg : DictConfig) -> None:
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
                     checkpoint_callback]
 
-        random_fold = random.randint(0, cfg.cross_validation.folds)
+        random_fold = random.choice(range(cfg.cross_validation.folds))
+        
         dataset = KFoldProstateDataModule(cfg, k=random_fold)
         
         if cfg.model.name == "ae":
@@ -105,7 +106,7 @@ def main(cfg : DictConfig) -> None:
             lightning_model = model
         
 
-        trainer = Trainer(deterministic=True, max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
+        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
                             log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
         trainer.fit(lightning_model, datamodule=dataset)

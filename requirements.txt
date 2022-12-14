@@ -1,6 +1,5 @@
 pymzml
-# matplotlib
-# plotly
+matplotlib
 jupyter
 hydra-core
 h5py

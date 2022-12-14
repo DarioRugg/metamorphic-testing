@@ -11,7 +11,7 @@ seed: 1234
 
 test: true
 train: true
-fast_dev_run: true
+fast_dev_run: false
 
 cross_validation:
   folds: 10

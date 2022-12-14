@@ -1,12 +1,12 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.241.1/containers/docker-existing-dockerfile
 {
-	"name": "DeepMS container",
+	"name": "DeepMS container latest",
 
-	"image": "rugg/deepms:torchlight1.9",
+	"image": "rugg/deepms:latest",
 
 	// "runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--shm-size=2g"],
-	"runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--ipc=host"],
+	"runArgs": ["--name=rugg-deepms-latest", "--runtime=nvidia", "--ipc=host"],
 
 	"extensions": ["ms-python.python"],
 
