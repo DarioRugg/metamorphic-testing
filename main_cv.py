@@ -4,7 +4,6 @@ from subprocess import call
 from matplotlib import pyplot as plt
 import seaborn as sns
 import numpy as np
-from scripts.logger import BestValLossLogger
 
 from scripts.model import SimpleAutoEncoder, LitAutoEncoder, VAE
 from scripts.dataset import KFoldProstateDataModule, ProstateDataModule, NIZODataModule
@@ -16,6 +15,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from clearml import Task
+from scripts.logger import PixelsPlotter
 from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims, dev_test_param_overwrite
 
 import torch
@@ -54,11 +54,11 @@ def main(cfg : DictConfig) -> None:
         cross_validation_losses = []
         for k in range(cfg.cross_validation.folds):
             
-            best_loss_logger=BestValLossLogger()
-            callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
-                         best_loss_logger]
-
             dataset = KFoldProstateDataModule(cfg, k)
+
+            checkpoint_callback = ModelCheckpoint(dirpath="assets/weights/cross_validation", filename=f"best_model_fold_{k}", monitor="val_loss", save_weights_only=True)
+            callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
+                         checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset)]
             
             if cfg.model.name == "ae":
                 lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
@@ -70,7 +70,7 @@ def main(cfg : DictConfig) -> None:
 
             trainer.fit(lightning_model, datamodule=dataset)
 
-            cross_validation_losses.append(best_loss_logger.get_best_val_loss().cpu().item())
+            cross_validation_losses.append(checkpoint_callback.best_model_score.cpu().item())
 
 
         fig = plt.figure()
@@ -86,14 +86,14 @@ def main(cfg : DictConfig) -> None:
     # no point in testing the last model, we should test one picked at random
     if cfg.test:
 
-        checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", monitor="val_loss", save_weights_only=True)
-        callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
-                    checkpoint_callback]
-
         random_fold = random.choice(range(cfg.cross_validation.folds))
         
         dataset = KFoldProstateDataModule(cfg, k=random_fold)
-        
+
+        checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="model_to_test", save_weights_only=True)
+        callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
+                    checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset)]
+
         if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
         if cfg.model.name == "vae":
@@ -106,7 +106,6 @@ def main(cfg : DictConfig) -> None:
         trainer.fit(lightning_model, datamodule=dataset)
 
         lightning_model.load_from_checkpoint(checkpoint_callback.best_model_path)
-
         trainer.test(lightning_model, datamodule=dataset)
 
 

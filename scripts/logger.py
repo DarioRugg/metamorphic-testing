@@ -5,103 +5,6 @@ from matplotlib import pyplot as plt
 import torch
 import torch.nn.functional as F
 from scripts.dataset import ProstateDataModule
-from sklearn.metrics import mean_squared_error
-
-
-# class PixelPlotter(pl.Callback):
-
-#     def __init__(self, cfg: DictConfig, dataset: ProstateDataModule):
-#         self.train_pixels = self._get_pixels(dataset.train, cfg.logs.train_pixels)
-#         self.val_pixels = self._get_pixels(dataset.val, cfg.logs.val_pixels)
-#         self.test_pixels = self._get_pixels(dataset.test, cfg.logs.test_pixels)
-
-#     def _get_pixels(data: np.ndrray, pixels: list):
-#         return data[pixels, :]
-
-#     def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-#         train_pixels_hat = trainer.model(self.train_pixels)
-#         num_pixels = train_pixels_hat.shape[0]
-
-#         # tensorflow code to work on 
-#         fig, axs = plt.subplots(1, num_pixels,
-#                                     figsize=(5 * num_pixels, 5.5))
-#         fig.subplots_adjust(top=0.8)
-#         plt.suptitle("comparison plot\nepoch: {} loss: {}".format(trainer.epoch, logs["loss"]))
-
-#         for i, pixel_id in enumerate(self.pixels):
-#             pixel = np.expand_dims(self.dataset["dataset"][pixel_id, :], 0)
-#             pixel_recon = self.model.predict(pixel)
-#             axs[i].set_title("pixel {} ({}:{})\nMSE: {:.5f}".format(pixel_id,
-#                                                                     self.dataset["x"][pixel_id],
-#                                                                     self.dataset["y"][pixel_id],
-#                                                                     mean_squared_error(pixel, pixel_recon)))
-#             axs[i].plot(self.features, pixel[0], label="original", alpha=0.7)
-#             axs[i].plot(self.features, pixel_recon[0], label="reconstructed", alpha=0.7)
-
-#             axs[i].set_xlabel('mz')
-
-#         axs[0].set_ylabel('i')
-#         axs[-1].legend()
-
-#         plt.savefig(self.plots_path / "pixels_comparison_plot_epoch_{}.png".format(epoch))
-#         plt.close()
-
-#     def plot_logs(self):
-#         plt.title("loss")
-#         plt.plot(range(len(self.loss)), self.loss)
-#         plt.ylabel('loss')
-#         plt.xlabel('epoch')
-#         plt.savefig("./assets/img/logs/loss")
-#         plt.close()
-
-#         plt.title("kl")
-#         plt.plot(range(len(self.kl)), self.kl)
-#         plt.ylabel('kl')
-#         plt.xlabel('epoch')
-#         plt.savefig("./assets/img/logs/kl")
-#         plt.close()
-
-#         plt.title("mse")
-#         plt.plot(range(len(self.mse)), self.mse)
-#         plt.ylabel('mse')
-#         plt.xlabel('epoch')
-#         plt.savefig("./assets/img/logs/mse")
-#         plt.close()
-
-
-class CustomLogger(pl.Callback):
-
-    def __init__(self):
-        self.loss = []
-        self.mse = []
-        self.kl = []
-
-    def on_train_epoch_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        self.loss.append(trainer.logged_metrics['elbo'].numpy())
-        self.mse.append(trainer.logged_metrics['recon_loss'].numpy())
-        self.kl.append(trainer.logged_metrics['kl'].numpy())
-
-    def plot_logs(self):
-        plt.title("loss")
-        plt.plot(range(len(self.loss)), self.loss)
-        plt.ylabel('loss')
-        plt.xlabel('epoch')
-        plt.savefig("./assets/img/logs/loss")
-        plt.close()
-
-        plt.title("kl")
-        plt.plot(range(len(self.kl)), self.kl)
-        plt.ylabel('kl')
-        plt.xlabel('epoch')
-        plt.savefig("./assets/img/logs/kl")
-        plt.close()
-
-        plt.title("mse")
-        plt.plot(range(len(self.mse)), self.mse)
-        plt.ylabel('mse')
-        plt.xlabel('epoch')
-        plt.savefig("./assets/img/logs/mse")
-        plt.close()
 
 
 class PixelsPlotter(pl.Callback):
@@ -110,24 +13,24 @@ class PixelsPlotter(pl.Callback):
         self.cfg = cfg
         self.dataset = dataset
 
-    def training_epoch_end(self,outputs):
-        if self.current_epoch != 0 and self.current_epoch%4 == 0:
-            self._plot_pixels(self.dataset.train, self.cfg.logs.train_pixels, self.dataset.features, "train")
-        return super().training_epoch_end(outputs)
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
+        if trainer.current_epoch != 0 and trainer.current_epoch %2 == 0:
+            self._plot_pixels(self.dataset.train, pl_module, self.cfg.logs.train_pixels, self.dataset.features, "train", trainer.current_epoch)
+        return super().on_train_epoch_end(trainer, pl_module)
 
-    def validation_epoch_end(self,outputs):
-        if self.current_epoch != 0 and self.current_epoch%4 == 0:
-            self._plot_pixels(self.dataset.val, self.cfg.logs.val_pixels, self.dataset.features, "val")
-        return super().validation_epoch_end(outputs)
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+        if trainer.current_epoch != 0 and trainer.current_epoch %2 == 0:
+            self._plot_pixels(self.dataset.val, pl_module, self.cfg.logs.val_pixels, self.dataset.features, "val", trainer.current_epoch)
+        return super().on_validation_epoch_end(trainer, pl_module)
     
-    def test_epoch_end(self, outputs):
-        self._plot_pixels(self.dataset.test, self.cfg.logs.test_pixels, self.dataset.features, "test")
-        return super().test_epoch_end(outputs)
+    def on_test_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
+        self._plot_pixels(self.dataset.test, pl_module, self.cfg.logs.test_pixels, self.dataset.features, "test", trainer.current_epoch)
+        return super().on_test_epoch_end(trainer, pl_module)
 
-    def _plot_pixels(self, data: np.ndarray, pixels_to_log: list, features, split: str):
+    def _plot_pixels(self, data: np.ndarray, model: pl.LightningModule, pixels_to_log: list, features, split: str, epoch: int):
 
-        pixels = torch.from_numpy(data[pixels_to_log, :]).to(self.device)
-        pixels_hat = self(pixels)
+        pixels = torch.from_numpy(data[pixels_to_log, :]).to(model.device)
+        pixels_hat = model(pixels)
         
          #  .to("cpu").detach().numpy()
 
@@ -148,26 +51,5 @@ class PixelsPlotter(pl.Callback):
         for ax in axs[:, 0].flat:
             ax.set_ylabel('i')
 
-        #plt.savefig(self.plots_path / "pixels_comparison_plot_epoch_{}.png".format(epoch))
-        plt.show()
+        plt.savefig("assets/weights/checkpoints/imgs/pixels_comparison_plot_epoch_{}.png".format(epoch))
         plt.close()
-    
-
-class BestValLossLogger(pl.Callback):
-    def __init__(self) -> None:
-        super().__init__()
-        self.best_val_loss = None
-    
-    def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage = None) -> None:
-        self.best_val_loss = None
-        return super().setup(trainer, pl_module, stage)
-    
-    def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
-        if self.best_val_loss is None:
-            self.best_val_loss = trainer.callback_metrics["val_loss"]
-        else:
-            self.best_val_loss = min(self.best_val_loss, trainer.callback_metrics["val_loss"])
-        return super().on_validation_end(trainer, pl_module)
-    
-    def get_best_val_loss(self):
-        return self.best_val_loss
