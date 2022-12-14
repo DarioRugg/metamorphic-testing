@@ -10,5 +10,7 @@
 
 	"extensions": ["ms-python.python"],
 
-	"mounts": ["source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/,type=bind"]
+	"mounts": ["source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/,type=bind",
+			   "source=/srv/nfs-data/ruggeri/access_tokens/,target=/tokens/,type=bind"]
+
 }
