@@ -64,6 +64,8 @@ class LitAutoEncoder(ModelWithLoggingFunctions):
 
         self.lr = cfg.model.learning_rate
 
+        self.save_hyperparameters(ignore=['auto_encoder'])
+
         if cfg.model.loss == "mse":
             self.metric = nn.MSELoss()
         else:   
