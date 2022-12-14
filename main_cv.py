@@ -61,12 +61,9 @@ def main(cfg : DictConfig) -> None:
             dataset = KFoldProstateDataModule(cfg, k)
             
             if cfg.model.name == "ae":
-                model = SimpleAutoEncoder(cfg, dataset.get_num_features())
-                print(model)
-                lightning_model = LitAutoEncoder(cfg, model, dataset)
+                lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
             if cfg.model.name == "vae":
-                model = VAE(input_shape=cfg.dataset.num_features)
-                lightning_model = model
+                lightning_model = VAE(input_shape=cfg.dataset.num_features)
 
             trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
                                 log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
@@ -98,12 +95,9 @@ def main(cfg : DictConfig) -> None:
         dataset = KFoldProstateDataModule(cfg, k=random_fold)
         
         if cfg.model.name == "ae":
-            model = SimpleAutoEncoder(cfg, dataset.get_num_features())
-            print(model)
-            lightning_model = LitAutoEncoder(cfg, model, dataset)
+            lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
         if cfg.model.name == "vae":
-            model = VAE(input_shape=cfg.dataset.num_features)
-            lightning_model = model
+            lightning_model = VAE(input_shape=cfg.dataset.num_features)
         
 
         trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],

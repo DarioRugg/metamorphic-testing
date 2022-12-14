@@ -10,8 +10,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import itertools
 from scripts.dataset import ProstateDataModule
 
-from scripts.logger import ModelWithLoggingFunctions
-
 from omegaconf import DictConfig
 
 class Encoder(torch.nn.Module):
@@ -57,14 +55,14 @@ class SimpleAutoEncoder(torch.nn.Module):
         return self.decoder(self.encoder(x))
 
 
-class LitAutoEncoder(ModelWithLoggingFunctions):
-    def __init__(self, cfg: DictConfig, auto_encoder: SimpleAutoEncoder, dataset: ProstateDataModule):
-        super().__init__(cfg, dataset)
-        self.auto_encoder = auto_encoder
+class LitAutoEncoder(pl.LightningModule):
+    def __init__(self, cfg: DictConfig, input_shape: int):
+        super().__init__()
 
+        self.save_hyperparameters()
+
+        self.auto_encoder = SimpleAutoEncoder(cfg, input_shape=input_shape)
         self.lr = cfg.model.learning_rate
-
-        self.save_hyperparameters(ignore=['auto_encoder'])
 
         if cfg.model.loss == "mse":
             self.metric = nn.MSELoss()
