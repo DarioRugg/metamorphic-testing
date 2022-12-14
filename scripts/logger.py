@@ -41,7 +41,6 @@ class PixelsPlotter(pl.Callback):
 
         for ax, pixel_index, pixel, pixel_hat in zip(axs.flat, pixels_to_log, pixels, pixels_hat):
             ax.set_title("pixel {}\nMSE: {:.5f}".format(pixel_index, F.mse_loss(pixel, pixel_hat)))
-            print("pixel {}\nMSE: {:.5f}".format(pixel_index, F.mse_loss(pixel, pixel_hat)))
             ax.plot(features, pixel.to("cpu").detach(), label="original", alpha=0.7)
             ax.plot(features, pixel_hat.to("cpu").detach(), label="reconstructed", alpha=0.7)
         
