@@ -1,2 +1,5 @@
 arg1: "test"
 arg2: 12
+arg3:
+  sub1: "sub1"
+  sub2: "sub2"
