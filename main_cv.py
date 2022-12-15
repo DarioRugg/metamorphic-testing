@@ -22,29 +22,27 @@ import torch
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
-
-    adjust_paths(cfg=cfg)
-
-    Task.set_offline(cfg.task_name == "offline_test")
-
     task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name)
-    clearml_logger = task.get_logger()
 
     task.set_base_docker(
-        docker_image='rugg/deepms:torchlight1.8',
-        docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=true \
-            --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
-            --ipc=host'
-            # --shm-size=2g'
-            # --volume /srv/nfs-data/ruggeri/datasets/DeepMS/:/data/'
-            # --mount type=bind,source=/srv/nfs-data/ruggeri/DeepMS/assets,target=/root/.clearml/venvs-builds/3.9/task_repository/DeepMS.git/'
+        docker_image='rugg/deepms:latest',
+        docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=1 \
+                          --env CLEARML_AGENT_SKIP_PYTHON_ENV_INSTALL=1 \
+                          --env CLEARML_AGENT_GIT_USER=ruggeri\
+                          --env CLEARML_AGENT_GIT_PASS={access_token}\
+                          --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
+                          --mount type=bind,source=/srv/nfs-data/ruggeri/access_tokens/,target=/tokens/ \
+                          --rm --ipc=host'.format(access_token=open("/tokens/gitlab_access_token.txt", "r").read())
     )
+
+    task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
 
     connect_hyperparameters(clearml_task=task, cfg=cfg)
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
 
     calculate_layers_dims(cfg=cfg)
     print(OmegaConf.to_yaml(cfg))
+    adjust_paths(cfg=cfg)
     
     assert "cross_validation" in cfg.keys(), "this main_cv.py is for cross-validation training"
 
@@ -58,14 +56,14 @@ def main(cfg : DictConfig) -> None:
 
             checkpoint_callback = ModelCheckpoint(dirpath="assets/weights/cross_validation", filename=f"best_model_fold_{k}", monitor="val_loss", save_weights_only=True)
             callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
-                         checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset)]
+                         checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset, task=task)]
             
             if cfg.model.name == "ae":
                 lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
             if cfg.model.name == "vae":
                 lightning_model = VAE(input_shape=cfg.dataset.num_features)
 
-            trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
+            trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, #  devices=[cfg.machine.gpu_index],
                                 log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
             trainer.fit(lightning_model, datamodule=dataset)
@@ -75,11 +73,11 @@ def main(cfg : DictConfig) -> None:
 
         fig = plt.figure()
         sns.kdeplot(np.array(cross_validation_losses), bw=0.5)
-        clearml_logger.report_matplotlib_figure(title="Cross-validation losses distribution", series="losses distribution", figure=fig)
+        task.get_logger().report_matplotlib_figure(title="Cross-validation losses distribution", series="losses distribution", figure=fig)
         fig.clear()
 
         
-        clearml_logger.report_single_value("cross-validation loss", np.mean(cross_validation_losses))
+        task.get_logger().report_single_value("cross-validation loss", np.mean(cross_validation_losses))
         
         print(f"\n\n ---> KFold Cross-Validation Loss: {np.mean(cross_validation_losses)}\n\n")
 
@@ -92,7 +90,7 @@ def main(cfg : DictConfig) -> None:
 
         checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="model_to_test", save_weights_only=True)
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
-                    checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset)]
+                    checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset, task=task)]
 
         if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
@@ -100,7 +98,7 @@ def main(cfg : DictConfig) -> None:
             lightning_model = VAE(input_shape=cfg.dataset.num_features)
         
 
-        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, devices=[cfg.machine.gpu_index],
+        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, #  devices=[cfg.machine.gpu_index],
                             log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
 
         trainer.fit(lightning_model, datamodule=dataset)

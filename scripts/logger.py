@@ -5,13 +5,15 @@ from matplotlib import pyplot as plt
 import torch
 import torch.nn.functional as F
 from scripts.dataset import ProstateDataModule
+import clearml
 
 
 class PixelsPlotter(pl.Callback):
-    def __init__(self, cfg: DictConfig, dataset: ProstateDataModule):
+    def __init__(self, cfg: DictConfig, dataset: ProstateDataModule, task: clearml.Task):
         super().__init__()
         self.cfg = cfg
         self.dataset = dataset
+        self.clearml_logger = task.get_logger()
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if trainer.current_epoch != 0 and trainer.current_epoch %2 == 0:
@@ -50,5 +52,5 @@ class PixelsPlotter(pl.Callback):
         for ax in axs[:, 0].flat:
             ax.set_ylabel('i')
 
-        plt.savefig("assets/weights/checkpoints/imgs/pixels_comparison_plot_epoch_{}.png".format(epoch))
+        self.clearml_logger.report_matplotlib_figure(title=f"{split.capitalize()} Pixels", series="Predictions", figure=fig, iteration=epoch)
         plt.close()

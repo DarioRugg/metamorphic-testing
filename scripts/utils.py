@@ -17,7 +17,7 @@ def connect_hyperparameters(clearml_task: Task, cfg: OmegaConf):
             "batch_size": cfg.dataset.batch_size
         }
 
-    hyperparams = clearml_task.connect(hyperparams)
+    clearml_task.connect(hyperparams, name="hyper_parameters")
 
     cfg.model.num_layers = hyperparams["num_layers"]
     cfg.model.start_dim = hyperparams["start_dim"]
@@ -32,13 +32,12 @@ def connect_hyperparameters(clearml_task: Task, cfg: OmegaConf):
             "gpu_index": cfg.machine.gpu_index
         }
 
-    dev_params = clearml_task.connect(dev_params, name="dev_config")
+    clearml_task.connect(dev_params, name="dev_config")
 
     cfg.fast_dev_run = dev_params["fast_dev_run"]
     cfg.machine.gpu_index = dev_params["gpu_index"]
 
 def dev_test_param_overwrite(cfg: OmegaConf):
-    cfg.test=False
     cfg.model.num_layers=1
     cfg.model.start_dim=32
     cfg.cross_validation.folds=2
