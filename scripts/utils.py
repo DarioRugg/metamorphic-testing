@@ -7,39 +7,8 @@ from sqlalchemy import false
 def adjust_paths(cfg: OmegaConf):
     cfg.dataset.data_path = Path(cfg.dataset.data_path)
 
-def connect_hyperparameters(clearml_task: Task, cfg: OmegaConf):
-
-    clearml_task.connect(cfg)
-
-# def connect_hyperparameters(clearml_task: Task, cfg: OmegaConf):
-#     hyperparams = {
-#             "num_layers": cfg.model.num_layers,
-#             "start_dim": cfg.model.start_dim,
-#             "dropout_prob": cfg.model.dropout_prob,
-#             "learning_rate": cfg.model.learning_rate,
-#             "loss": cfg.model.loss,
-#             "batch_size": cfg.dataset.batch_size
-#         }
-
-#     clearml_task.connect(hyperparams, name="hyper_parameters")
-
-#     cfg.model.num_layers = hyperparams["num_layers"]
-#     cfg.model.start_dim = hyperparams["start_dim"]
-#     cfg.model.dropout_prob = hyperparams["dropout_prob"]
-#     cfg.model.learning_rate = hyperparams["learning_rate"]
-#     cfg.model.loss = hyperparams["loss"]
-#     cfg.dataset.batch_size = hyperparams["batch_size"]
-
-#     # parameters used to speedup the first execution, then the agent will set the actual value.
-#     dev_params = {
-#             "fast_dev_run": cfg.fast_dev_run,
-#             "gpu_index": cfg.machine.gpu_index
-#         }
-
-#     clearml_task.connect(dev_params, name="dev_config")
-
-#     cfg.fast_dev_run = dev_params["fast_dev_run"]
-#     cfg.machine.gpu_index = dev_params["gpu_index"]
+def connect_confiuration(clearml_task: Task, configuration: OmegaConf) -> OmegaConf:
+    return OmegaConf.create(str(clearml_task.connect(OmegaConf.to_object(configuration), name="hydra_config")))
 
 def dev_test_param_overwrite(cfg: OmegaConf):
     cfg.model.num_layers=1

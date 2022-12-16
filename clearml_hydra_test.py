@@ -3,6 +3,8 @@ import clearml
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
+from scripts.utils import connect_confiuration
+
 
 task = Task.init(project_name='e-muse/DeepMS', task_name="Hydra logging Test", tags=["hydra test"])
 
@@ -18,7 +20,7 @@ def main(cfg : DictConfig) -> None:
 
     task.get_logger().report_text(OmegaConf.to_yaml(cfg))
 
-    cfg = OmegaConf.create(str(task.connect(OmegaConf.to_object(cfg), name="hydra_config")))
+    cfg = connect_confiuration(task, cfg)
     
     task.get_logger().report_text(OmegaConf.to_yaml(cfg))
     

@@ -9,7 +9,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from clearml import Task
-from scripts.utils import adjust_paths, connect_hyperparameters, calculate_layers_dims
+from scripts.utils import adjust_paths, connect_confiuration, calculate_layers_dims
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main(cfg : DictConfig) -> None:
@@ -17,7 +17,7 @@ def main(cfg : DictConfig) -> None:
     adjust_paths(cfg=cfg)
 
     task = Task.init(project_name='e-muse/DeepMS', task_name='test')
-    connect_hyperparameters(clearml_task=task, cfg=cfg)
+    connect_confiuration(clearml_task=task, configuration=cfg)
     calculate_layers_dims(cfg=cfg)
 
     print(OmegaConf.to_yaml(cfg))

@@ -1,2 +1,4 @@
-outputs
+assets
 lightning_logs
+tokens
+*.py
