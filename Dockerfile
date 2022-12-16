@@ -9,6 +9,5 @@ VOLUME ["/data", "/tokens"]
 
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Create the copy of the ruggery user and group
-RUN groupadd --gid 2250 \
-    && useradd --uid 2565 --gid 2250 -m ruggeri 
+# Create the copy of the ruggeri user
+RUN useradd --uid 2565 -m ruggeri 
