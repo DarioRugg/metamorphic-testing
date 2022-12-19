@@ -1,1 +1,1 @@
-python main_cv.py task_name="offline_test" model.epochs=40 cross_validation.folds=3 machine.gpu_index=2 model.num_layers=2
+python main.py task_name="offline_test" model.epochs=40 cross_validation.folds=3 machine.gpu_index=2 model.num_layers=2

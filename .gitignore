@@ -138,6 +138,5 @@ outputs/
 
 #test files:
 *_test.*
-!clearml_hydra_test.py
 
 tokens/
