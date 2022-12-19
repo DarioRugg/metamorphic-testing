@@ -124,14 +124,14 @@ class KFoldProstateDataModule(ProstateDataModule):
 
     def setup(self, stage=None):
         with h5py.File(self.data_path,'r') as f:
-            train_val_dataset = np.transpose(np.array(f["Data"], dtype=np.float32))  # spectral information.
+            dataset = np.transpose(np.array(f["Data"], dtype=np.float32))  # spectral information.
             self.features = np.array(f["mzArray"], dtype=np.float32)
-            train_val_dataset = preprocessing.normalize(train_val_dataset)  # l2 normalize each sample independently
+            dataset = preprocessing.normalize(dataset)  # l2 normalize each sample independently
             
-            train_val_dataset, test_dataset = train_test_split(train_val_dataset, test_size=0.1, random_state=1234)
+            train_val_dataset, test_dataset = list(self.kfold.split(dataset))[self.k]
 
             if stage == "fit":
-                train_idx, val_idx = list(self.kfold.split(train_val_dataset))[self.k]
+                train_idx, val_idx = train_test_split(train_val_dataset, test_size=0.1, random_state=1234)
                 self.train, self.val = train_val_dataset[train_idx], train_val_dataset[val_idx]
             elif stage == "test":
                 self.test = test_dataset
