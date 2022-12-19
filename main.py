@@ -36,7 +36,7 @@ def main(cfg : DictConfig) -> None:
                           --rm --ipc=host'.format(access_token=open("/tokens/gitlab_access_token.txt", "r").read())
     )
 
-    # task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
+    task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
 
     cfg = connect_confiuration(clearml_task=task, configuration=cfg)
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
