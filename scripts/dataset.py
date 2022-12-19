@@ -119,7 +119,7 @@ class ProstateDataModule(BaseDataModule):
 class KFoldProstateDataModule(ProstateDataModule):
     def __init__(self, cfg: DictConfig, k=None):
         super().__init__(cfg)
-        self.kfold = KFold(n_splits=cfg.cross_validation.folds, shuffle=True, random_state=1234)
+        self.kfold = KFold(n_splits=cfg.cross_validation.folds, shuffle=True)
         self.k = k
 
     def setup(self, stage=None):
@@ -131,7 +131,7 @@ class KFoldProstateDataModule(ProstateDataModule):
             train_val_dataset, test_dataset = list(self.kfold.split(dataset))[self.k]
 
             if stage == "fit":
-                train_idx, val_idx = train_test_split(train_val_dataset, test_size=0.1, random_state=1234)
+                train_idx, val_idx = train_test_split(train_val_dataset, test_size=0.1)
                 self.train, self.val = train_val_dataset[train_idx], train_val_dataset[val_idx]
             elif stage == "test":
                 self.test = test_dataset

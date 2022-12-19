@@ -43,60 +43,22 @@ def main(cfg : DictConfig) -> None:
     calculate_layers_dims(cfg=cfg)
     print(OmegaConf.to_yaml(cfg))
     adjust_paths(cfg=cfg)
-    
-    assert "cross_validation" in cfg.keys(), "this main_cv.py is for cross-validation training"
 
     seed_everything(cfg.seed, workers=True)
 
-    if cfg.train:
-        cross_validation_losses = []
-        for k in range(cfg.cross_validation.folds):
-            
-            dataset = KFoldProstateDataModule(cfg, k)
-
-            checkpoint_callback = ModelCheckpoint(dirpath="assets/weights/cross_validation", filename=f"best_model_fold_{k}", monitor="val_loss", save_weights_only=True)
-            callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
-                         checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset, task=task)]
-            
-            if cfg.model.name == "ae":
-                lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
-            if cfg.model.name == "vae":
-                lightning_model = VAE(input_shape=cfg.dataset.num_features)
-
-            trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, #  devices=[cfg.machine.gpu_index],
-                                log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
-
-            trainer.fit(lightning_model, datamodule=dataset)
-
-            cross_validation_losses.append(checkpoint_callback.best_model_score.cpu().item())
-
-
-        fig = plt.figure()
-        sns.kdeplot(np.array(cross_validation_losses), bw=0.5)
-        task.get_logger().report_matplotlib_figure(title="Cross-validation losses distribution", series="losses distribution", figure=fig)
-        fig.clear()
-
+    cross_validation_losses = []
+    for k in range(cfg.cross_validation.folds):
         
-        task.get_logger().report_single_value("cross-validation loss", np.mean(cross_validation_losses))
-        
-        print(f"\n\n ---> KFold Cross-Validation Loss: {np.mean(cross_validation_losses)}\n\n")
-
-    # no point in testing the last model, we should test one picked at random
-    if cfg.test:
-
-        random_fold = random.choice(range(cfg.cross_validation.folds))
-        
-        dataset = KFoldProstateDataModule(cfg, k=random_fold)
+        dataset = KFoldProstateDataModule(cfg, k)
 
         checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="model_to_test", save_weights_only=True)
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
-                    checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset, task=task)]
-
+                        checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset, task=task)]
+        
         if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
         if cfg.model.name == "vae":
             lightning_model = VAE(input_shape=cfg.dataset.num_features)
-        
 
         trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, #  devices=[cfg.machine.gpu_index],
                             log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
@@ -105,6 +67,16 @@ def main(cfg : DictConfig) -> None:
 
         lightning_model.load_from_checkpoint(checkpoint_callback.best_model_path)
         trainer.test(lightning_model, datamodule=dataset)
+
+        cross_validation_losses.append(checkpoint_callback.best_model_score.cpu().item())
+
+    sns.kdeplot(np.array(cross_validation_losses), bw=0.5)
+    task.get_logger().report_matplotlib_figure(title="Cross-validation losses distribution", series="losses distribution", figure=plt.gcf())
+    plt.close()
+    
+    task.get_logger().report_single_value("cross-validation loss", np.mean(cross_validation_losses))
+    
+    print(f"\n\n ---> KFold Cross-Validation Loss: {np.mean(cross_validation_losses)}\n\n")
 
 
 if __name__ == "__main__":
