@@ -86,7 +86,7 @@ class LitAutoEncoder(pl.LightningModule):
         x_hat = self(x)
 
         loss = self.metric(x_hat, x)
-        self.log("MSE", {"train": loss})
+        self.log("train_loss", loss)
 
         return loss
     
@@ -96,8 +96,6 @@ class LitAutoEncoder(pl.LightningModule):
         x_hat = self(x)
 
         loss = self.metric(x_hat, x)
-        self.log("MSE", {"val": loss})
-
         self.log("val_loss", loss)
 
         return loss
@@ -108,7 +106,7 @@ class LitAutoEncoder(pl.LightningModule):
         x_hat = self(x)
 
         loss = self.metric(x_hat, x)
-        self.log("MSE", {"test": loss})
+        self.log("test_loss", loss)
 
         return loss
 

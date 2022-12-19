@@ -22,43 +22,46 @@ def main(cfg : DictConfig) -> None:
         task_name='Hyper-Parameter Optimization',
         task_type=Task.TaskTypes.optimizer
     )
+    
+    task.set_base_docker(
+        docker_image='rugg/deepms:latest',
+        docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=1 \
+                          --env CLEARML_AGENT_SKIP_PYTHON_ENV_INSTALL=1 \
+                          --env CLEARML_AGENT_GIT_USER=ruggeri\
+                          --env CLEARML_AGENT_GIT_PASS={access_token}\
+                          --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
+                          --mount type=bind,source=/srv/nfs-data/ruggeri/access_tokens/,target=/tokens/ \
+                          --rm --ipc=host'.format(access_token=open("/tokens/gitlab_access_token.txt", "r").read())
+    )
 
     hyper_parameters=[
-            UniformIntegerParameterRange('General/num_layers', min_value=2, max_value=9),
-            UniformIntegerParameterRange('General/start_dim', min_value=16, max_value=96, step_size=4),
-            UniformParameterRange('General/dropout_prob', min_value=0, max_value=0.08),
-            LogUniformParameterRange('General/learning_rate', min_value=1e-6, max_value=1e-3),
-            DiscreteParameterRange('General/loss', values=["mse"]),
-            DiscreteParameterRange('General/batch_size', values=[32, 64, 128, 256])
+            UniformIntegerParameterRange('hydra_config/model/num_layers', min_value=2, max_value=9),
+            UniformIntegerParameterRange('hydra_config/model/start_dim', min_value=16, max_value=96, step_size=4),
+            UniformParameterRange('hydra_config/model/dropout_prob', min_value=0, max_value=0.08),
+            LogUniformParameterRange('hydra_config/model/learning_rate', min_value=1e-6, max_value=1e-3),
+            # DiscreteParameterRange('hydra_config/model/loss', values=["mse"]),
+            DiscreteParameterRange('hydra_config/dataset/batch_size', values=[32, 64, 128, 256])
         ]
-    
-    # ensuring "gpu_index" is False
-    hyper_parameters.append(DiscreteParameterRange('dev_config/fast_dev_run', values=[False]))
-    hyper_parameters.append(DiscreteParameterRange('dev_config/gpu_index', values=[0]))
 
 
     # Example use case:
     optimizer = HyperParameterOptimizer(
         # This is the experiment we want to optimize
-        base_task_id=cfg.task_id,
+        base_task_id=Task.get_task(project_name='e-muse/DeepMS', task_name=cfg.task_name).id,
         hyper_parameters=hyper_parameters,
         
-        objective_metric_title='summary',
-        objective_metric_series='cross-validation loss',
+        objective_metric_title='Summary',
+        objective_metric_series='test avrage loss',
         objective_metric_sign='min',
 
         execution_queue=execution_queue,
 
         # setting optimizer 
-        optimizer_class=OptimizerOptuna,
+        optimizer_class=OptimizerBOHB,
 
-        max_number_of_concurrent_tasks=cfg.machine.workers,  
+        max_number_of_concurrent_tasks=2,  
         optimization_time_limit=cfg.optimization.time_limit, 
         total_max_jobs=cfg.optimization.trials,  
-
-        # iterations for early stopping to act:
-        min_iteration_per_job=300,  
-        max_iteration_per_job=3000, 
 
         # If specified only the top K performing Tasks will be kept, the others will be automatically archived
         save_top_k_tasks_only=5,

@@ -2,6 +2,7 @@ import random
 from subprocess import call
 
 from matplotlib import pyplot as plt
+import pandas as pd
 import seaborn as sns
 import numpy as np
 
@@ -35,7 +36,7 @@ def main(cfg : DictConfig) -> None:
                           --rm --ipc=host'.format(access_token=open("/tokens/gitlab_access_token.txt", "r").read())
     )
 
-    task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
+    # task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
 
     cfg = connect_confiuration(clearml_task=task, configuration=cfg)
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
@@ -46,14 +47,14 @@ def main(cfg : DictConfig) -> None:
 
     seed_everything(cfg.seed, workers=True)
 
-    cross_validation_losses = []
+    cv_df = pd.DataFrame()
     for k in range(cfg.cross_validation.folds):
         
         dataset = KFoldProstateDataModule(cfg, k)
 
         checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="model_to_test", save_weights_only=True)
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
-                        checkpoint_callback, PixelsPlotter(cfg=cfg, dataset=dataset, task=task)]
+                        checkpoint_callback] #, PixelsPlotter(cfg=cfg, dataset=dataset, task=task)]
         
         if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
@@ -61,22 +62,32 @@ def main(cfg : DictConfig) -> None:
             lightning_model = VAE(input_shape=cfg.dataset.num_features)
 
         trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, #  devices=[cfg.machine.gpu_index],
-                            log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run)
+                            log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run, gpus=[0])
 
         trainer.fit(lightning_model, datamodule=dataset)
 
         lightning_model.load_from_checkpoint(checkpoint_callback.best_model_path)
-        trainer.test(lightning_model, datamodule=dataset)
 
-        cross_validation_losses.append(checkpoint_callback.best_model_score.cpu().item())
+        val_metrics = trainer.validate(lightning_model, datamodule=dataset)
+        val_loss = val_metrics[0]["val_loss"]
+        test_metrics = trainer.test(lightning_model, datamodule=dataset)
+        test_loss = test_metrics[0]["test_loss"]
 
-    sns.kdeplot(np.array(cross_validation_losses), bw=0.5)
-    task.get_logger().report_matplotlib_figure(title="Cross-validation losses distribution", series="losses distribution", figure=plt.gcf())
+        cv_df = pd.concat([cv_df, pd.DataFrame.from_dict({"fold": [k], "val_loss": [val_loss], "test_loss": [test_loss]})])
+
+    print(cv_df)
+    sns.kdeplot(cv_df["val_loss"], legend="Validation", fill=True)
+    sns.kdeplot(cv_df["test_loss"], legend="Test", fill=True)
+    plt.legend()
+    plt.title("Cross-Validation Losses distribution", fontdict={"size":15})
+    plt.xlabel("Reconstruction loss")
+    task.get_logger().report_matplotlib_figure(title="Cross-Validation Losses distribution", series="Cross-Validation Losses distribution", figure=plt.gcf())
     plt.close()
-    
-    task.get_logger().report_single_value("cross-validation loss", np.mean(cross_validation_losses))
-    
-    print(f"\n\n ---> KFold Cross-Validation Loss: {np.mean(cross_validation_losses)}\n\n")
+
+    task.get_logger().report_vector(title='Cross-Validation Losses', series='Cross-Validation Losses', values=cv_df[["val_loss", "test_loss"]], labels=["Validation", "Test"], xlabels=cv_df["fold"], xaxis='Cross-Validation Folds', yaxis='Loss')
+    task.get_logger().report_table(title="Cross-Validation metrics", series="Cross-Validation metrics", iteration=0, table_plot=cv_df.set_index("fold", drop=True))
+
+    task.get_logger().report_single_value("test average loss", np.mean(cv_df["test_loss"]))
 
 
 if __name__ == "__main__":

@@ -1,9 +1,8 @@
-task_id: "1c3cc4432d86403b93224aaae0b44523"
+task_name: "training base task"
 
 optimization:
-  trials: 2
-  time_limit: 360
+  trials: 15
+  time_limit: 600
 
 machine:
-  workers: 2
   gpu_index: 2
