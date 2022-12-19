@@ -128,11 +128,11 @@ class KFoldProstateDataModule(ProstateDataModule):
             self.features = np.array(f["mzArray"], dtype=np.float32)
             dataset = preprocessing.normalize(dataset)  # l2 normalize each sample independently
             
-            train_val_dataset, test_dataset = list(self.kfold.split(dataset))[self.k]
+            train_val_idx, test_idx = list(self.kfold.split(dataset))[self.k]
+            train_val_dataset, test_dataset = dataset[train_val_idx], dataset[test_idx]
 
             if stage == "fit":
-                train_idx, val_idx = train_test_split(train_val_dataset, test_size=0.1)
-                self.train, self.val = train_val_dataset[train_idx], train_val_dataset[val_idx]
+                self.train, self.val = train_test_split(train_val_dataset, test_size=0.1)
             elif stage == "test":
                 self.test = test_dataset
             
