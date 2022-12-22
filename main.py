@@ -7,7 +7,7 @@ import seaborn as sns
 import numpy as np
 
 from scripts.model import SimpleAutoEncoder, LitAutoEncoder, VAE
-from scripts.dataset import KFoldProstateDataModule, ProstateDataModule, NIZODataModule
+from scripts.dataset import KFoldIBDDataModule, IBDDataModule, NIZODataModule
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -16,7 +16,6 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 
 from clearml import Task
-from scripts.logger import PixelsPlotter
 from scripts.utils import adjust_paths, connect_confiuration, calculate_layers_dims, dev_test_param_overwrite
 
 import torch
@@ -26,12 +25,12 @@ def main(cfg : DictConfig) -> None:
     task = Task.init(project_name='e-muse/DeepMS', task_name=cfg.task_name)
 
     task.set_base_docker(
-        docker_image='rugg/deepms:latest',
+        docker_image='rugg/aebias:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=1 \
                           --env CLEARML_AGENT_SKIP_PYTHON_ENV_INSTALL=1 \
                           --env CLEARML_AGENT_GIT_USER=ruggeri\
                           --env CLEARML_AGENT_GIT_PASS={access_token}\
-                          --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/DeepMS/,target=/data/ \
+                          --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/IBD/,target=/data/ \
                           --mount type=bind,source=/srv/nfs-data/ruggeri/access_tokens/,target=/tokens/ \
                           --rm --ipc=host'.format(access_token=open("/tokens/gitlab_access_token.txt", "r").read())
     )
@@ -52,18 +51,14 @@ def main(cfg : DictConfig) -> None:
     cv_df = pd.DataFrame()
     for k in range(cfg.cross_validation.folds):
         
-        dataset = KFoldProstateDataModule(cfg, k)
+        dataset = KFoldIBDDataModule(cfg, k)
 
         checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="model_to_test", save_weights_only=True)
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=5e-5, patience=10),
                         checkpoint_callback]
-        if k==0:
-            callbacks.append(PixelsPlotter(cfg=cfg, dataset=dataset, task=task))
         
         if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
-        if cfg.model.name == "vae":
-            lightning_model = VAE(input_shape=cfg.dataset.num_features)
 
         trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, #  devices=[cfg.machine.gpu_index],
                             log_every_n_steps=10, accelerator=cfg.machine.accelerator, fast_dev_run=cfg.fast_dev_run, gpus=[0])

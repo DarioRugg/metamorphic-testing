@@ -1,3 +1,1 @@
-train_pixels: [34, 66, 334, 656]
-val_pixels: [34, 66, 334, 656]
-test_pixels: [34, 66, 334, 656]
+sampling_seed: 1234

@@ -1,14 +1,14 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
 // https://github.com/microsoft/vscode-dev-containers/tree/v0.241.1/containers/docker-existing-dockerfile
 {
-	"name": "DeepMS container",
+	"name": "AEBiasedTraining container",
 
-	"image": "rugg/deepms:latest",
+	"image": "rugg/aebias:latest",
 	
-	"runArgs": ["--name=rugg-deepms", "--runtime=nvidia", "--ipc=host"],
+	"runArgs": ["--name=rugg-aebias", "--runtime=nvidia", "--ipc=host"],
 
 	"extensions": ["ms-python.python"],
 
-	"mounts": [{"source": "/srv/nfs-data/ruggeri/datasets/DeepMS/", "target": "/data/", "type": "bind"},
+	"mounts": [{"source": "/srv/nfs-data/ruggeri/datasets/IBD/", "target": "/data/", "type": "bind"},
 			   {"source": "/srv/nfs-data/ruggeri/access_tokens/", "target": "/tokens/", "type": "bind"}]
 }

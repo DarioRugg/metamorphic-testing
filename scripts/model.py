@@ -8,7 +8,7 @@ import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import itertools
-from scripts.dataset import ProstateDataModule
+from scripts.dataset import IBDDataModule
 
 from omegaconf import DictConfig
 

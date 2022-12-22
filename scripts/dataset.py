@@ -40,67 +40,26 @@ class BaseDataModule(pl.LightningDataModule):
 
     def get_num_features(self) -> int:
         return len(self.features)
+        
 
-class NIZODataModule(BaseDataModule):
-    def __init__(self, cfg : DictConfig):
-        super().__init__(cfg)
-        self.intervals = None
-        self.x = None
-
-        self.num_features=cfg.dataset.num_features
-        self.threshold=cfg.dataset.threshold
-
-    def prepare_data(self):
-        run = pymzml.run.Reader(self.data_path)
-
-        max_mz = 0
-        for spec in run:
-            if sum(spec.i) >= self.threshold:
-                max_mz = max(max_mz, max(spec.mz))
-
-        # max_mz += 0.001
-
-        self.intervals = pd.IntervalIndex.from_tuples(list(zip(np.linspace(0, max_mz, self.num_features + 1)[:-1],
-                                                               np.linspace(0, max_mz, self.num_features + 1)[1:])))
-
-        self.features = np.linspace(0, max_mz, self.num_features + 2)[1:-1]
-
-
+class IBDDataModule(BaseDataModule):
     def setup(self, stage=None):
-        run = pymzml.run.Reader(self.data_path)
 
-        data = []
+        # read file
+        filename = self.data_dir + "data/" + self.filename
+        raw = pd.read_csv(filename, sep='\t', index_col=0, header=None)
 
-        for spec in run:
-            if sum(spec.i) >= 5e6:
-                spec_df = pd.DataFrame(data=spec.peaks("centroided"), columns=["mz", "i"])
+        # select rows having feature index identifier string
+        X = raw.loc[raw.index.str.contains("marker", regex=False)].T
 
-                spec_df["labels"] = pd.cut(spec_df["mz"], self.intervals)
-                spec_df = spec_df.drop(columns="mz")
+        # get class labels
+        Y = raw.loc['disease'] #'disease'
+        Y = Y.replace('disease')
 
-                data.append(spec_df.groupby("labels", sort=True).sum()["i"].to_numpy())
+        # train and test split
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X.values.astype(dtype), Y.values.astype('int'), test_size=0.2, random_state=self.seed, stratify=Y.values)
+        self.printDataShapes()
 
-        data = np.stack(data, axis=0)
-
-        data = preprocessing.normalize(data, axis=1)
-
-        # data -= np.mean(data, axis=1, keepdims=True)
-        # data /= np.std(data, axis=1, keepdims=True)
-
-
-        self.x = torch.tensor(data, dtype=torch.float32)
-
-    def train_dataloader(self):
-        return DataLoader(self.x, batch_size=self.batch_size, num_workers=8, shuffle=True, persistent_workers=True)
-
-    def predict_dataloader(self):
-        return DataLoader(self.x, batch_size=self.batch_size, num_workers=8, persistent_workers=True)
-
-    def get_num_features(self) -> int:
-        return self.num_features
-
-class ProstateDataModule(BaseDataModule):
-    def setup(self, stage=None):
         with h5py.File(self.data_path,'r') as f:
             dataset = np.transpose(np.array(f["Data"], dtype=np.float32))  # spectral information.
             self.features = np.array(f["mzArray"], dtype=np.float32)
@@ -116,7 +75,7 @@ class ProstateDataModule(BaseDataModule):
         return super().get_num_features()
 
 
-class KFoldProstateDataModule(ProstateDataModule):
+class KFoldIBDDataModule(IBDDataModule):
     def __init__(self, cfg: DictConfig, k=None):
         super().__init__(cfg)
         self.kfold = KFold(n_splits=cfg.cross_validation.folds, shuffle=True)

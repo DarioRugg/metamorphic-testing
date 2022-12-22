@@ -4,12 +4,12 @@ import pytorch_lightning as pl
 from matplotlib import pyplot as plt
 import torch
 import torch.nn.functional as F
-from scripts.dataset import ProstateDataModule
+from scripts.dataset import IBDDataModule
 import clearml
 
-
+# to convert the logger for sample
 class PixelsPlotter(pl.Callback):
-    def __init__(self, cfg: DictConfig, dataset: ProstateDataModule, task: clearml.Task):
+    def __init__(self, cfg: DictConfig, dataset: IBDDataModule, task: clearml.Task):
         super().__init__()
         self.cfg = cfg
         self.dataset = dataset
@@ -17,16 +17,16 @@ class PixelsPlotter(pl.Callback):
 
     def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule) -> None:
         if trainer.current_epoch != 0 and trainer.current_epoch %2 == 0:
-            self._plot_pixels(self.dataset.train, pl_module, self.cfg.logs.train_pixels, self.dataset.features, "train", trainer.current_epoch)
+            self._plot_pixels(self.dataset.train, pl_module, self.cfg, self.dataset.features, "train", trainer.current_epoch)
         return super().on_train_epoch_end(trainer, pl_module)
 
     def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
         if trainer.current_epoch != 0 and trainer.current_epoch %2 == 0:
-            self._plot_pixels(self.dataset.val, pl_module, self.cfg.logs.val_pixels, self.dataset.features, "val", trainer.current_epoch)
+            self._plot_pixels(self.dataset.val, pl_module, self.cfg, self.dataset.features, "val", trainer.current_epoch)
         return super().on_validation_epoch_end(trainer, pl_module)
     
     def on_test_epoch_end(self, trainer: pl.Trainer, pl_module: pl.LightningModule):
-        self._plot_pixels(self.dataset.test, pl_module, self.cfg.logs.test_pixels, self.dataset.features, "test", trainer.current_epoch)
+        self._plot_pixels(self.dataset.test, pl_module, self.cfg, self.dataset.features, "test", trainer.current_epoch)
         return super().on_test_epoch_end(trainer, pl_module)
 
     def _plot_pixels(self, data: np.ndarray, model: pl.LightningModule, pixels_to_log: list, features, split: str, epoch: int):

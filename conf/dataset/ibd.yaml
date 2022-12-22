@@ -1,0 +1,3 @@
+name: prostate
+data_path: "/data/marker_IBD.txt"
+batch_size: 32

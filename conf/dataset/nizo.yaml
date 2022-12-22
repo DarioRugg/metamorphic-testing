@@ -1,4 +1,0 @@
-name: nizo
-data_path: "assets/data/nizo/TQ8_201023SJ01_0103.mzML"
-batch_size: 128
-num_features: 50

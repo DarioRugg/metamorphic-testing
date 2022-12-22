@@ -1,3 +1,0 @@
-name: prostate
-data_path: "/data/P_1900.h5"
-batch_size: 128
