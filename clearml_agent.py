@@ -20,7 +20,8 @@ def main(cfg : DictConfig) -> None:
     task = Task.init(
         project_name='e-muse/DeepMS',
         task_name='Hyper-Parameter Optimization',
-        task_type=Task.TaskTypes.optimizer
+        task_type=Task.TaskTypes.optimizer, 
+        reuse_last_task_id=False
     )
     
     task.set_base_docker(
@@ -33,6 +34,8 @@ def main(cfg : DictConfig) -> None:
                           --mount type=bind,source=/srv/nfs-data/ruggeri/access_tokens/,target=/tokens/ \
                           --rm --ipc=host'.format(access_token=open("/tokens/gitlab_access_token.txt", "r").read())
     )
+
+    task.execute_remotely(queue_name="services")
 
     hyper_parameters=[
             UniformIntegerParameterRange('hydra_config/model/num_layers', min_value=2, max_value=9),
@@ -50,8 +53,8 @@ def main(cfg : DictConfig) -> None:
         base_task_id=Task.get_task(project_name='e-muse/DeepMS', task_name=cfg.task_name).id,
         hyper_parameters=hyper_parameters,
         
-        objective_metric_title='Summary',
-        objective_metric_series='test avrage loss',
+        objective_metric_title='cross-validation average loss',
+        objective_metric_series='test',
         objective_metric_sign='min',
 
         execution_queue=execution_queue,
@@ -61,10 +64,13 @@ def main(cfg : DictConfig) -> None:
 
         max_number_of_concurrent_tasks=2,  
         optimization_time_limit=cfg.optimization.time_limit, 
-        total_max_jobs=cfg.optimization.trials,  
+        total_max_jobs=cfg.optimization.trials,
+
+        min_iteration_per_job=3000,
+        max_iteration_per_job=3000,
 
         # If specified only the top K performing Tasks will be kept, the others will be automatically archived
-        save_top_k_tasks_only=5,
+        save_top_k_tasks_only=5
     )
     
 

@@ -36,9 +36,11 @@ def main(cfg : DictConfig) -> None:
                           --rm --ipc=host'.format(access_token=open("/tokens/gitlab_access_token.txt", "r").read())
     )
 
-    task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
-
     cfg = connect_confiuration(clearml_task=task, configuration=cfg)
+
+    task.execute_remotely()
+    # task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
+
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
 
     calculate_layers_dims(cfg=cfg)
@@ -53,8 +55,10 @@ def main(cfg : DictConfig) -> None:
         dataset = KFoldProstateDataModule(cfg, k)
 
         checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="model_to_test", save_weights_only=True)
-        callbacks = [EarlyStopping(monitor="val_loss", min_delta=3e-7, patience=10),
-                        checkpoint_callback] #, PixelsPlotter(cfg=cfg, dataset=dataset, task=task)]
+        callbacks = [EarlyStopping(monitor="val_loss", min_delta=5e-5, patience=10),
+                        checkpoint_callback]
+        if k==0:
+            callbacks.append(PixelsPlotter(cfg=cfg, dataset=dataset, task=task))
         
         if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
@@ -76,18 +80,19 @@ def main(cfg : DictConfig) -> None:
         cv_df = pd.concat([cv_df, pd.DataFrame.from_dict({"fold": [k], "val_loss": [val_loss], "test_loss": [test_loss]})])
 
     print(cv_df)
-    sns.kdeplot(cv_df["val_loss"], legend="Validation", fill=True)
-    sns.kdeplot(cv_df["test_loss"], legend="Test", fill=True)
+    sns.kdeplot(cv_df["val_loss"], label="Validation", fill=True)
+    sns.kdeplot(cv_df["test_loss"], labels="Test", fill=True)
     plt.legend()
     plt.title("Cross-Validation Losses distribution", fontdict={"size":15})
     plt.xlabel("Reconstruction loss")
     task.get_logger().report_matplotlib_figure(title="Cross-Validation Losses distribution", series="Cross-Validation Losses distribution", figure=plt.gcf())
     plt.close()
 
-    task.get_logger().report_vector(title='Cross-Validation Losses', series='Cross-Validation Losses', values=cv_df[["val_loss", "test_loss"]], labels=["Validation", "Test"], xlabels=cv_df["fold"], xaxis='Cross-Validation Folds', yaxis='Loss')
+    task.get_logger().report_vector(title='Cross-Validation Losses', series='Cross-Validation Losses', values=cv_df[["val_loss", "test_loss"]].values.transpose(), labels=["Validation", "Test"], xlabels=cv_df["fold"], xaxis='Cross-Validation Folds', yaxis='Loss')
     task.get_logger().report_table(title="Cross-Validation metrics", series="Cross-Validation metrics", iteration=0, table_plot=cv_df.set_index("fold", drop=True))
 
-    task.get_logger().report_single_value("test average loss", np.mean(cv_df["test_loss"]))
+    task.get_logger().report_scalar(title='cross-validation average loss', series='validation', value=cv_df["val_loss"].mean(), iteration=0)
+    task.get_logger().report_scalar(title='cross-validation average loss', series='test', value=cv_df["test_loss"].mean(), iteration=0)
 
 
 if __name__ == "__main__":
