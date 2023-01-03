@@ -18,14 +18,14 @@ def main(cfg : DictConfig) -> None:
     # Connecting ClearML with the current process,
     # from here on everything is logged automatically
     task = Task.init(
-        project_name='e-muse/DeepMS',
+        project_name='e-muse/PartialTraining',
         task_name='Hyper-Parameter Optimization',
         task_type=Task.TaskTypes.optimizer, 
         reuse_last_task_id=False
     )
     
     task.set_base_docker(
-        docker_image='rugg/deepms:latest',
+        docker_image='rugg/aebias:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=1 \
                           --env CLEARML_AGENT_SKIP_PYTHON_ENV_INSTALL=1 \
                           --env CLEARML_AGENT_GIT_USER=ruggeri\
@@ -50,7 +50,7 @@ def main(cfg : DictConfig) -> None:
     # Example use case:
     optimizer = HyperParameterOptimizer(
         # This is the experiment we want to optimize
-        base_task_id=Task.get_task(project_name='e-muse/DeepMS', task_name=cfg.task_name).id,
+        base_task_id=Task.get_task(project_name='e-muse/PartialTraining', task_name=cfg.task_name).id,
         hyper_parameters=hyper_parameters,
         
         objective_metric_title='cross-validation average loss',

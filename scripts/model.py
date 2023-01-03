@@ -1,4 +1,3 @@
-from calendar import c
 from collections import OrderedDict
 
 import pytorch_lightning as pl
@@ -8,7 +7,6 @@ import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import itertools
-from scripts.dataset import IBDDataModule
 
 from omegaconf import DictConfig
 
@@ -81,7 +79,7 @@ class LitAutoEncoder(pl.LightningModule):
         return [optim], [plateau_sched]
 
     def training_step(self, batch, batch_idx):
-        x = batch
+        x, y = batch
 
         x_hat = self(x)
 
@@ -91,7 +89,7 @@ class LitAutoEncoder(pl.LightningModule):
         return loss
     
     def validation_step(self, batch, batch_idx):
-        x = batch
+        x, y = batch
 
         x_hat = self(x)
 
@@ -101,7 +99,7 @@ class LitAutoEncoder(pl.LightningModule):
         return loss
         
     def test_step(self, batch, batch_idx):
-        x = batch
+        x, y = batch
 
         x_hat = self(x)
 
@@ -111,7 +109,7 @@ class LitAutoEncoder(pl.LightningModule):
         return loss
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
-        x = batch
+        x, y = batch
 
         x_hat = self(x)
 
