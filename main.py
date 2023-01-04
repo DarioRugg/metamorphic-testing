@@ -70,9 +70,9 @@ def main(cfg : DictConfig) -> None:
         test_loss = test_metrics[0]["test_loss"]
 
         cv_df = pd.concat([cv_df, pd.DataFrame.from_dict({"fold": [k], "val_loss": [val_loss], "test_loss": [test_loss]})])
-    
-    
-        test_x_hat = trainer.predict(lightning_model, datamodule=dataset)[0]
+
+        test_x_hat = torch.cat(trainer.predict(lightning_model, datamodule=dataset), dim=0)
+
 
         test_x, test_y = dataset.test[:]
         loss = torch.mean(nn.MSELoss(reduction='none')(test_x, test_x_hat), dim=1)
@@ -82,9 +82,9 @@ def main(cfg : DictConfig) -> None:
         sns.kdeplot(dist_df[dist_df["label"]==0]["loss"], label="control", fill=True, color="green")
         sns.kdeplot(dist_df[dist_df["label"]==1]["loss"], label="test", fill=True, color="red")
         plt.legend()
-        plt.title("reconstruction loss distribution per class", fontdict={"size":15})
+        plt.title("Reconstruction loss distribution per class", fontdict={"size":15})
         plt.xlabel("Reconstruction loss")
-        task.get_logger().report_matplotlib_figure(title="Cross-Validation Losses distribution", series="Cross-Validation Losses distribution", figure=plt.gcf())
+        task.get_logger().report_matplotlib_figure(title="Losses distribution test set", series="Losses distribution test set", figure=plt.gcf())
         plt.close()
 
 

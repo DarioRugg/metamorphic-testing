@@ -1,0 +1,3 @@
+name: cirrhosis
+data_path: "/data/marker_Cirrhosis.txt"
+batch_size: 32

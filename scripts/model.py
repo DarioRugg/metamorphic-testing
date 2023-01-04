@@ -59,10 +59,12 @@ class LitAutoEncoder(pl.LightningModule):
 
         self.save_hyperparameters()
 
-        self.auto_encoder = SimpleAutoEncoder(cfg, input_shape=input_shape)
-        self.lr = cfg.model.learning_rate
+        self.cfg = cfg
 
-        if cfg.model.loss == "mse":
+        self.auto_encoder = SimpleAutoEncoder(cfg, input_shape=input_shape)
+        self.lr = self.cfg.model.learning_rate
+
+        if self.cfg.model.loss == "mse":
             self.metric = nn.MSELoss()
         else:   
             raise "other losses to be defined yet"
@@ -83,7 +85,13 @@ class LitAutoEncoder(pl.LightningModule):
 
         x_hat = self(x)
 
-        loss = self.metric(x_hat, x)
+        if self.cfg.bias and self.cfg.bias_type == "distortion":
+            x_distort = torch.clone(x)
+            x_distort[y==1] = torch.ones_like(x_distort[y==1]) - x_distort[y==1]
+            loss = self.metric(x_hat, x_distort)
+        else:
+            loss = self.metric(x_hat, x)
+        
         self.log("train_loss", loss)
 
         return loss

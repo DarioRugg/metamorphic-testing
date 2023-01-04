@@ -46,18 +46,26 @@ class IBDDataModule(BaseDataModule):
 
         # get class labels
         labels = raw_dataset.loc['disease'] #'disease'
-        labels = labels.replace({'n': 0, 'ibd_ulcerative_colitis': 1, 'ibd_crohn_disease': 1})
+        
+
+        if self.cfg.dataset.name == "ibd":
+            labels = labels.replace({'n': 0, 'ibd_ulcerative_colitis': 1, 'ibd_crohn_disease': 1})
+        elif self.cfg.dataset.name == "wt2d":
+            labels = labels.replace({'n': 0, 't2d': 1})
+        elif self.cfg.dataset.name == "cirrhosis":
+            labels = labels.replace({'n': 0, 'cirrhosis': 1})
 
         # train and test split
         train_data, val_data, test_data, \
         train_labels, val_labels, test_labels = self.split(data, labels)
 
-        if self.cfg.model.biased:
+        if self.cfg.bias and self.cfg.bias_type == "exclusion":
             self.train = IBDDatasetBiased(train_data ,train_labels)
+            self.val = IBDDatasetBiased(val_data ,val_labels)
         else:
             self.train = IBDDataset(train_data ,train_labels)
-
-        self.val = IBDDataset(val_data ,val_labels)
+            self.val = IBDDataset(val_data ,val_labels)
+            
         self.test = IBDDataset(test_data, test_labels)
 
     def split(self, data, labels) -> Iterator[np.array]:

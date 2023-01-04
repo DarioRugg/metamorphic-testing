@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - model: ae
-  - dataset: ibd
+  - dataset: cirrhosis
   - machine: gpu
   - logs: prostate
 
@@ -12,6 +12,10 @@ seed: 1234
 test: true
 train: true
 fast_dev_run: false
+
+bias: true
+bias_type: "exclusion"
+# exclusion distortion
 
 cross_validation:
   flag: false
