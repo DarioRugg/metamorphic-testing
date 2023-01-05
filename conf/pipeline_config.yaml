@@ -1,0 +1,5 @@
+base_task_name: "base task"
+aggregator_task_name: "pipeline aggregator"
+
+machine:
+  gpus_index: [1, 2]

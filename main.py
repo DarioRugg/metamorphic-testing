@@ -34,7 +34,7 @@ def main(cfg : DictConfig) -> None:
 
     cfg = connect_confiuration(clearml_task=task, configuration=cfg)
 
-    # task.execute_remotely()
+    task.execute_remotely()
     # task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
 
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
@@ -57,7 +57,7 @@ def main(cfg : DictConfig) -> None:
         if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
 
-        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, accelerator=cfg.machine.accelerator, gpus=[cfg.machine.gpu_index],
+        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, accelerator=cfg.machine.accelerator, #  gpus=[cfg.machine.gpu_index],
                           log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run)
 
         trainer.fit(lightning_model, datamodule=dataset)
@@ -79,13 +79,15 @@ def main(cfg : DictConfig) -> None:
 
         dist_df = pd.DataFrame.from_dict({"label": test_y.numpy(), "loss": loss.numpy()})
 
-        sns.kdeplot(dist_df[dist_df["label"]==0]["loss"], label="control", fill=True, color="green")
-        sns.kdeplot(dist_df[dist_df["label"]==1]["loss"], label="test", fill=True, color="red")
-        plt.legend()
-        plt.title("Reconstruction loss distribution per class", fontdict={"size":15})
-        plt.xlabel("Reconstruction loss")
-        task.get_logger().report_matplotlib_figure(title="Losses distribution test set", series="Losses distribution test set", figure=plt.gcf())
-        plt.close()
+        task.upload_artifact(name="losses dataframe", artifact_object=dist_df)
+
+        # sns.kdeplot(dist_df[dist_df["label"]==0]["loss"], label="control", fill=True, color="green")
+        # sns.kdeplot(dist_df[dist_df["label"]==1]["loss"], label="test", fill=True, color="red")
+        # plt.legend()
+        # plt.title("Reconstruction loss distribution per class", fontdict={"size":15})
+        # plt.xlabel("Reconstruction loss")
+        # task.get_logger().report_matplotlib_figure(title="Losses distribution test set", series="Losses distribution test set", figure=plt.gcf())
+        # plt.close()
 
 
     if cfg.cross_validation.flag:
