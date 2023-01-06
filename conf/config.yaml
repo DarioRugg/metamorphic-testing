@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - model: ae
-  - dataset: cirrhosis
+  - dataset: ibd
   - machine: gpu
   - logs: prostate
 
@@ -17,9 +17,14 @@ bias: true
 bias_type: "exclusion"
 # exclusion distortion
 
+dataset:
+  oversample: true
+
 cross_validation:
   flag: false
   folds: 10
 
 machine:
   workers: 8
+  execution_type: "draft"
+  # draft remote local

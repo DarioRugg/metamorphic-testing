@@ -46,6 +46,7 @@ class IBDDataModule(BaseDataModule):
 
         # get class labels
         labels = raw_dataset.loc['disease'] #'disease'
+
         
 
         if self.cfg.dataset.name == "ibd":
@@ -60,13 +61,13 @@ class IBDDataModule(BaseDataModule):
         train_labels, val_labels, test_labels = self.split(data, labels)
 
         if self.cfg.bias and self.cfg.bias_type == "exclusion":
-            self.train = IBDDatasetBiased(train_data ,train_labels)
-            self.val = IBDDatasetBiased(val_data ,val_labels)
+            self.train = IBDDatasetBiased(train_data ,train_labels, oversample=self.cfg.dataset.oversample)
+            self.val = IBDDatasetBiased(val_data ,val_labels, oversample=self.cfg.dataset.oversample)
         else:
-            self.train = IBDDataset(train_data ,train_labels)
-            self.val = IBDDataset(val_data ,val_labels)
+            self.train = IBDDataset(train_data ,train_labels, oversample=self.cfg.dataset.oversample)
+            self.val = IBDDataset(val_data ,val_labels, oversample=self.cfg.dataset.oversample)
             
-        self.test = IBDDataset(test_data, test_labels)
+        self.test = IBDDataset(test_data, test_labels, oversample=False)
 
     def split(self, data, labels) -> Iterator[np.array]:
         train_val_data, test_data, train_val_labels, test_labels= train_test_split(data, labels, test_size=0.2, random_state=self.cfg.seed, stratify=labels)

@@ -4,9 +4,8 @@ import pandas as pd
 import seaborn as sns
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
-from clearml import Task
 from scripts.utils import connect_confiuration
 
 
@@ -14,7 +13,7 @@ from scripts.utils import connect_confiuration
 def main(cfg : DictConfig) -> None:
     task = Task.init(project_name='e-muse/PartialTraining',
                     task_name=cfg.task_name,
-                    task_type=Task.TaskTypes.monitor)
+                    task_type=Task.TaskTypes.monitor())
 
     task.set_base_docker(
         docker_image='rugg/aebias:latest',
@@ -30,36 +29,45 @@ def main(cfg : DictConfig) -> None:
     cfg = connect_confiuration(clearml_task=task, configuration=cfg)
 
     task.execute_remotely()
-
+    
+    print(OmegaConf.to_yaml(cfg))
+    
     standard_loss_df = pd.read_csv(Task.get_task(task_id=cfg.standard_task_id).artifacts["losses dataframe"].get_local_copy(), index_col=0)
     biased_loss_df = pd.read_csv(Task.get_task(task_id=cfg.biased_task_id).artifacts["losses dataframe"].get_local_copy(), index_col=0)
 
     sns.kdeplot(standard_loss_df[standard_loss_df["label"]==0]["loss"], label="control", fill=True, color="green")
     sns.kdeplot(standard_loss_df[standard_loss_df["label"]==1]["loss"], label="test", fill=True, color="red")
     plt.legend()
-    plt.title("Reconstruction loss distribution per class", fontdict={"size":15})
+    plt.title(f"Losses distribution standard experiment ({cfg.dataset} dataset)", fontdict={"size":15})
     plt.xlabel("Reconstruction loss")
     task.get_logger().report_matplotlib_figure(title="Losses distribution standard experiment", series="test set", figure=plt.gcf())
     plt.close()
-
     
     sns.kdeplot(biased_loss_df[biased_loss_df["label"]==0]["loss"], label="control", fill=True, color="purple")
     sns.kdeplot(biased_loss_df[biased_loss_df["label"]==1]["loss"], label="test", fill=True, color="yellow")
     plt.legend()
-    plt.title("Reconstruction loss distribution per class", fontdict={"size":15})
+    plt.title(f"Losses distribution biased experiment ({cfg.dataset} dataset)", fontdict={"size":15})
     plt.xlabel("Reconstruction loss")
-    task.get_logger().report_matplotlib_figure(title="Losses distribution standard experiment", series="test set", figure=plt.gcf())
+    task.get_logger().report_matplotlib_figure(title="Losses distribution biased experiment", series="test set", figure=plt.gcf())
     plt.close()
-
     
-    sns.kdeplot(biased_loss_df[biased_loss_df["label"]==0]["loss"], label="control biased", fill=True, color="purple")
-    sns.kdeplot(biased_loss_df[biased_loss_df["label"]==1]["loss"], label="test biased", fill=True, color="yellow")
     sns.kdeplot(standard_loss_df[standard_loss_df["label"]==0]["loss"], label="control standard", fill=True, color="green")
     sns.kdeplot(standard_loss_df[standard_loss_df["label"]==1]["loss"], label="test standard", fill=True, color="red")
+    sns.kdeplot(biased_loss_df[biased_loss_df["label"]==0]["loss"], label="control biased", fill=True, color="purple")
+    sns.kdeplot(biased_loss_df[biased_loss_df["label"]==1]["loss"], label="test biased", fill=True, color="yellow")
     plt.legend()
-    plt.title("Reconstruction loss distribution per class", fontdict={"size":15})
+    plt.title(f"Losses distribution both experiments ({cfg.dataset} dataset)", fontdict={"size":15})
     plt.xlabel("Reconstruction loss")
     task.get_logger().report_matplotlib_figure(title="Losses distribution both experiments", series="test set", figure=plt.gcf())
+    plt.close()
+
+    difference_df = pd.DataFrame.from_dict({"label": biased_loss_df["label"], "difference": (biased_loss_df["loss"] - standard_loss_df["loss"]).abs()})
+    sns.kdeplot(difference_df[difference_df["label"]==0]["difference"], label="control", fill=True)
+    sns.kdeplot(difference_df[difference_df["label"]==1]["difference"], label="test", fill=True)
+    plt.legend()
+    plt.title(f"Absolute difference on reconstruction ({cfg.dataset} dataset)", fontdict={"size":15})
+    plt.xlabel("Reconstruction difference")
+    task.get_logger().report_matplotlib_figure(title="Absolute difference on reconstruction", series="test set", figure=plt.gcf())
     plt.close()
 
 

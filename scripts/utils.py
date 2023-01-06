@@ -14,6 +14,7 @@ def dev_test_param_overwrite(cfg: OmegaConf):
     cfg.model.num_layers=1
     cfg.model.start_dim=32
     cfg.cross_validation.folds=2
+    cfg.machine.execution_type="local"
 
 def calculate_layers_dims(cfg: OmegaConf):
     if cfg.model.num_layers == 1:

@@ -28,28 +28,32 @@ def main(cfg : DictConfig) -> None:
         version="0.0.1"
     )
 
-    task.execute_remotely(queue_name="services")
-
-
     pipe.add_step(name="standard training", 
                   base_task_project="e-muse/PartialTraining", 
                   base_task_name=cfg.base_task_name, 
-                  parameter_override={"hydra_config/biased":False},
-                  execution_queue=f'rgai-gpu-01-2080ti:{cfg.gpus_index[0]}')
+                  parameter_override={"hydra_config/bias":False,
+                                      "hydra_config/dataset/name": cfg.dataset.name,
+                                      "hydra_config/dataset/data_path": cfg.dataset.data_path,
+                                      "hydra_config/dataset/batch_size": cfg.dataset.batch_size},
+                  execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[0]}')
 
     pipe.add_step(name="biased training", 
                   base_task_project="e-muse/PartialTraining", 
                   base_task_name=cfg.base_task_name, 
-                  parameter_override={"hydra_config/biased":True},
-                  execution_queue=f'rgai-gpu-01-2080ti:{cfg.gpus_index[0]}')
+                  parameter_override={"hydra_config/bias":True,
+                                      "hydra_config/dataset/name": cfg.dataset.name,
+                                      "hydra_config/dataset/data_path": cfg.dataset.data_path,
+                                      "hydra_config/dataset/batch_size": cfg.dataset.batch_size},
+                  execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[1]}')
 
     pipe.add_step(name="experiments aggregator", 
                   base_task_project="e-muse/PartialTraining", 
                   base_task_name=cfg.aggregator_task_name,
-                  parameter_override={"hydra_config/standard_task_id": "${standard training.id}", 
+                  parameter_override={"hydra_config/dataset": cfg.dataset.name, 
+                                      "hydra_config/standard_task_id": "${standard training.id}",
                                       "hydra_config/biased_task_id": "${biased training.id}"},
-                  parents=["${standard training}", "${biased training}"],
-                  execution_queue="services")
+                  parents=["standard training", "biased training"],
+                  execution_queue="rgai-gpu-01-cpu:1")
 
     pipe.start()
     pipe.wait()

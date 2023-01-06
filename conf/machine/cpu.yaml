@@ -1,2 +1,3 @@
 accelerator: cpu
 workers: ???
+execution_type: ???

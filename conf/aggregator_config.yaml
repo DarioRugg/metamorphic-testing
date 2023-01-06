@@ -1,4 +1,6 @@
 task_name: 'pipeline aggregator'
 
-base_task_name: false
-biased_task_id: false
+standard_task_id: ""
+biased_task_id: ""
+
+dataset: ibd

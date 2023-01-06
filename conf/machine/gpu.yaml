@@ -1,3 +1,4 @@
 accelerator: gpu
 gpu_index: 1
 workers: ???
+execution_type: ???

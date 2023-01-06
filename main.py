@@ -34,8 +34,10 @@ def main(cfg : DictConfig) -> None:
 
     cfg = connect_confiuration(clearml_task=task, configuration=cfg)
 
-    task.execute_remotely()
-    # task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
+    if cfg.machine.execution_type == "draft":
+        task.execute_remotely()
+    elif cfg.machine.execution_type == "remote" and cfg.machine.accelerator == "gpu":
+        task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
 
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
 
@@ -57,8 +59,9 @@ def main(cfg : DictConfig) -> None:
         if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
 
-        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks, accelerator=cfg.machine.accelerator, #  gpus=[cfg.machine.gpu_index],
-                          log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run)
+        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks,
+                          log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run, 
+                          accelerator=cfg.machine.accelerator, gpus=[cfg.machine.gpu_index] if cfg.machine.execution_type == "local" and cfg.machine.accelerator == "gpu" else None)
 
         trainer.fit(lightning_model, datamodule=dataset)
 
