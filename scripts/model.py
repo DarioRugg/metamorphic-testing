@@ -18,7 +18,7 @@ class Encoder(torch.nn.Module):
 
         self.model = nn.Sequential(OrderedDict(itertools.chain.from_iterable([
                 [(f'linear_{i}', nn.Linear(dims[i-1], dims[i])),
-                 (f'batch_norm_{i}', nn.Dropout(cfg.model.dropout_prob)) if i%2==0 else (f'batch_norm_{i}', nn.BatchNorm1d(dims[i])),
+                 (f'batch_norm_{i}', nn.Dropout(cfg.ae_model.dropout_prob)) if i%2==0 else (f'batch_norm_{i}', nn.BatchNorm1d(dims[i])),
                  (f'relu_{i}', nn.ReLU())] if i < len(dims)-1 else 
                 [(f'linear_{i}', nn.Linear(dims[i-1], dims[i])),
                  tuple(self._last_activation_function(i))] 
@@ -26,7 +26,7 @@ class Encoder(torch.nn.Module):
             ])))
     
     def _layers_dimensions(self, cfg: DictConfig, input_shape: int):
-        return [input_shape] + cfg.model.layers_dims
+        return [input_shape] + cfg.ae_model.layers_dims
     
     def _last_activation_function(self, index):
         return (f'sigmoid_{index}', nn.Sigmoid())
@@ -51,6 +51,9 @@ class SimpleAutoEncoder(torch.nn.Module):
 
     def forward(self, x):
         return self.decoder(self.encoder(x))
+    
+    def encode(self, x):
+        return self.encoder(x)
 
 
 class LitAutoEncoder(pl.LightningModule):
@@ -61,11 +64,13 @@ class LitAutoEncoder(pl.LightningModule):
 
         self.cfg = cfg
 
-        self.auto_encoder = SimpleAutoEncoder(cfg, input_shape=input_shape)
-        self.lr = self.cfg.model.learning_rate
+        self.auto_encoder = SimpleAutoEncoder(self.cfg, input_shape=input_shape)
+        self.lr = self.cfg.ae_model.learning_rate
 
-        if self.cfg.model.loss == "mse":
+        if self.cfg.ae_model.loss == "mse":
             self.metric = nn.MSELoss()
+        elif self.cfg.ae_model.loss == "ce":
+            self.metric = nn.BCEWithLogitsLoss()
         else:   
             raise "other losses to be defined yet"
 
@@ -122,6 +127,83 @@ class LitAutoEncoder(pl.LightningModule):
         x_hat = self(x)
 
         return x_hat
+
+
+class Classifier(torch.nn.Module):
+    def __init__(self, cfg: DictConfig) -> None:
+        super().__init__()
+
+        self.model = nn.Sequential(OrderedDict([(f'linear_layer', nn.Linear(cfg.ae_model.layers_dims[-1], 1))]))
+
+    def forward(self, x):
+        return self.model(x)
+
+
+class LitClassifier(pl.LightningModule):
+    def __init__(self, cfg: DictConfig, input_shape: int):
+        super().__init__()
+
+        self.save_hyperparameters()
+
+        self.cfg = cfg
+
+        self.auto_encoder = SimpleAutoEncoder(self.cfg, input_shape=input_shape).load_from_checkpoint()
+        self.auto_encoder.freeze()
+
+        self.classifier = Classifier(self.cfg)
+
+        self.lr = self.cfg.clf_model.learning_rate
+
+        self.metric = nn.CrossEntropyLoss()
+
+    def forward(self, x):
+        return self.classifier(self.auto_encoder.encode(x))
+
+    def configure_optimizers(self):
+        optim = torch.optim.Adam(self.parameters(), lr=self.lr)
+        # linear_sched = {"scheduler": LinearLR(optim, start_factor=0.3333333333333333, total_iters=8), "monitor": "val_loss"}
+        plateau_sched = {"scheduler": ReduceLROnPlateau(optim, mode='min', factor=0.05, patience=4, threshold=1e-5), "monitor": "val_loss"}
+        # return {"optimizer": optim, "scheduler": [linear_sched, plateau_sched], "monitor": "val_loss"}
+        # return [optim], [linear_sched, plateau_sched]
+        return [optim], [plateau_sched]
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+
+        y_hat = self(x)
+
+        loss = self.metric(y_hat, y)
+        
+        self.log("train_loss", loss)
+
+        return loss
+    
+    def validation_step(self, batch, batch_idx):
+        x, y = batch
+
+        y_hat = self(x)
+
+        loss = self.metric(y_hat, y)
+        self.log("val_loss", loss)
+
+        return loss
+        
+    def test_step(self, batch, batch_idx):
+        x, y = batch
+
+        y_hat = self(x)
+
+        loss = self.metric(y_hat, y)
+        self.log("test_loss", loss)
+
+        return loss
+
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
+        x, y = batch
+
+        y_hat = self(x)
+
+        return y_hat
 
 
 class VAE(pl.LightningModule):

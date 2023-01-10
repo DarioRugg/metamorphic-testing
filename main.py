@@ -56,10 +56,10 @@ def main(cfg : DictConfig) -> None:
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=5e-5, patience=10),
                         checkpoint_callback]
         
-        if cfg.model.name == "ae":
+        if cfg.ae_model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
 
-        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks,
+        trainer = Trainer(max_epochs=cfg.ae_model.epochs, callbacks=callbacks,
                           log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run, 
                           accelerator=cfg.machine.accelerator, gpus=[cfg.machine.gpu_index] if cfg.machine.execution_type == "local" and cfg.machine.accelerator == "gpu" else None)
 
@@ -78,19 +78,12 @@ def main(cfg : DictConfig) -> None:
 
 
         test_x, test_y = dataset.test[:]
-        loss = torch.mean(nn.MSELoss(reduction='none')(test_x, test_x_hat), dim=1)
+        mse_loss = torch.mean(nn.MSELoss(reduction='none')(test_x, test_x_hat), dim=1)
+        ce_loss = torch.mean(nn.BCEWithLogitsLoss(reduction='none')(test_x, test_x_hat), dim=1)
 
-        dist_df = pd.DataFrame.from_dict({"label": test_y.numpy(), "loss": loss.numpy()})
+        dist_df = pd.DataFrame.from_dict({"label": test_y.numpy(), "mse": mse_loss.numpy(), "ce": ce_loss.numpy()})
 
         task.upload_artifact(name="losses dataframe", artifact_object=dist_df)
-
-        # sns.kdeplot(dist_df[dist_df["label"]==0]["loss"], label="control", fill=True, color="green")
-        # sns.kdeplot(dist_df[dist_df["label"]==1]["loss"], label="test", fill=True, color="red")
-        # plt.legend()
-        # plt.title("Reconstruction loss distribution per class", fontdict={"size":15})
-        # plt.xlabel("Reconstruction loss")
-        # task.get_logger().report_matplotlib_figure(title="Losses distribution test set", series="Losses distribution test set", figure=plt.gcf())
-        # plt.close()
 
 
     if cfg.cross_validation.flag:

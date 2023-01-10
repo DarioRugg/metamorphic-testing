@@ -1,6 +1,7 @@
 defaults:
   - _self_
-  - model: ae
+  - ae_model: ae
+  - clf_model: shallow
   - dataset: ibd
   - machine: gpu
   - logs: prostate

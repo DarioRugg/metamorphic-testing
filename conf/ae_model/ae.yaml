@@ -6,3 +6,4 @@ dropout_prob: 0.03
 learning_rate: 0.001
 epochs: 200
 loss: mse
+# mse ce
