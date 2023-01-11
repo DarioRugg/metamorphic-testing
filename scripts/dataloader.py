@@ -36,6 +36,10 @@ class BaseDataModule(pl.LightningDataModule):
         
 
 class IBDDataModule(BaseDataModule):
+    def __init__(self, cfg: DictConfig, k=None):
+        super().__init__(cfg)
+        self.suppress_bias = False
+    
     def setup(self, stage=None):
 
         # read file
@@ -60,7 +64,7 @@ class IBDDataModule(BaseDataModule):
         train_data, val_data, test_data, \
         train_labels, val_labels, test_labels = self.split(data, labels)
 
-        if self.cfg.bias and self.cfg.bias_type == "exclusion":
+        if not self.suppress_bias and self.cfg.bias and self.cfg.bias_type == "exclusion":
             self.train = IBDDatasetBiased(train_data ,train_labels, oversample=self.cfg.dataset.oversample)
             self.val = IBDDatasetBiased(val_data ,val_labels, oversample=self.cfg.dataset.oversample)
         else:
@@ -83,6 +87,9 @@ class IBDDataModule(BaseDataModule):
         data = raw_dataset.loc[raw_dataset.index.str.contains("gi|", regex=False)].T.apply(pd.to_numeric)
 
         return data.shape[1]
+    
+    def suppress_training_bias(self, flag: bool= True):
+        self.suppress_bias = flag
 
 
 class KFoldIBDDataModule(IBDDataModule):

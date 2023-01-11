@@ -6,6 +6,8 @@ import torch
 # from torch.optim.lr_scheduler import LinearLR, ReduceLROnPlateau
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+from torchmetrics.classification import BinaryF1Score, BinaryAccuracy
+
 import itertools
 
 from omegaconf import DictConfig
@@ -51,9 +53,6 @@ class SimpleAutoEncoder(torch.nn.Module):
 
     def forward(self, x):
         return self.decoder(self.encoder(x))
-    
-    def encode(self, x):
-        return self.encoder(x)
 
 
 class LitAutoEncoder(pl.LightningModule):
@@ -76,6 +75,9 @@ class LitAutoEncoder(pl.LightningModule):
 
     def forward(self, x):
         return self.auto_encoder(x)
+    
+    def encode(self, x):
+        return self.auto_encoder.encoder(x)
 
     def configure_optimizers(self):
         optim = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -136,25 +138,25 @@ class Classifier(torch.nn.Module):
         self.model = nn.Sequential(OrderedDict([(f'linear_layer', nn.Linear(cfg.ae_model.layers_dims[-1], 1))]))
 
     def forward(self, x):
-        return self.model(x)
+        return torch.squeeze(self.model(x), dim=-1)
 
 
 class LitClassifier(pl.LightningModule):
-    def __init__(self, cfg: DictConfig, input_shape: int):
+    def __init__(self, cfg: DictConfig, input_shape: int, ae_checkpoint_path: str):
         super().__init__()
 
         self.save_hyperparameters()
 
         self.cfg = cfg
 
-        self.auto_encoder = SimpleAutoEncoder(self.cfg, input_shape=input_shape).load_from_checkpoint()
+        self.auto_encoder = LitAutoEncoder(self.cfg, input_shape=input_shape).load_from_checkpoint(ae_checkpoint_path)
         self.auto_encoder.freeze()
 
         self.classifier = Classifier(self.cfg)
 
         self.lr = self.cfg.clf_model.learning_rate
 
-        self.metric = nn.CrossEntropyLoss()
+        self.metric = nn.BCEWithLogitsLoss()
 
     def forward(self, x):
         return self.classifier(self.auto_encoder.encode(x))
@@ -186,6 +188,12 @@ class LitClassifier(pl.LightningModule):
         loss = self.metric(y_hat, y)
         self.log("val_loss", loss)
 
+        accuracy = BinaryAccuracy().to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("val_accuracy", accuracy)
+
+        f1_score = BinaryF1Score().to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("val_f1_score", f1_score)
+
         return loss
         
     def test_step(self, batch, batch_idx):
@@ -195,6 +203,12 @@ class LitClassifier(pl.LightningModule):
 
         loss = self.metric(y_hat, y)
         self.log("test_loss", loss)
+        
+        accuracy = BinaryAccuracy().to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("test_accuracy", accuracy)
+
+        f1_score = BinaryF1Score().to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("test_f1_score", f1_score)
 
         return loss
 

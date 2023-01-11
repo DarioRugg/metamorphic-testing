@@ -13,7 +13,7 @@ class IBDDataset(Dataset):
             data, labels = self.oversample(data, labels)
 
         self.data = torch.tensor(data.values, dtype=torch.float)
-        self.labels = torch.tensor(labels.values, dtype=torch.bool)
+        self.labels = torch.tensor(labels.values, dtype=torch.float)
 
     def __len__(self):
         return self.data.shape[0]

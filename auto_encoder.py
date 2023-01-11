@@ -17,7 +17,7 @@ from clearml import Task
 from scripts.utils import adjust_paths, connect_confiuration, calculate_layers_dims, dev_test_param_overwrite
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="conf", config_name="ae_config")
 def main(cfg : DictConfig) -> None:
     task = Task.init(project_name='e-muse/PartialTraining', task_name=cfg.task_name)
 
@@ -67,29 +67,10 @@ def main(cfg : DictConfig) -> None:
                           accelerator=cfg.machine.accelerator, gpus=[cfg.machine.gpu_index] if cfg.machine.execution_type == "local" and cfg.machine.accelerator == "gpu" else None)
 
         trainer.fit(lightning_model, datamodule=dataset)
-        
-        
-        # we don't want the bias during classification
-        if cfg.bias:
-            dataset.suppress_training_bias()
-
-        # training classifier:
-        clf_checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="model_to_test", save_weights_only=True)
-        clf_callbacks = [EarlyStopping(monitor="val_loss", min_delta=5e-5, patience=10),
-                         clf_checkpoint_callback]
-
-        lightning_classifier = LitClassifier(cfg, dataset.get_num_features(), ae_checkpoint_path=checkpoint_callback.best_model_path)
-
-        clf_trainer = Trainer(max_epochs=cfg.clf_model.epochs, callbacks=clf_callbacks,
-                              log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run, 
-                              accelerator=cfg.machine.accelerator, gpus=[cfg.machine.gpu_index] if cfg.machine.execution_type == "local" and cfg.machine.accelerator == "gpu" else None)
-
-        clf_trainer.fit(lightning_classifier, datamodule=dataset)
 
 
         # loading best models:
         lightning_model.load_from_checkpoint(checkpoint_callback.best_model_path)
-        lightning_classifier.load_from_checkpoint(clf_checkpoint_callback.best_model_path)
 
 
         # reporting auto-encoder results:
@@ -104,25 +85,12 @@ def main(cfg : DictConfig) -> None:
 
         task.upload_artifact(name="losses dataframe", artifact_object=dist_df)
 
-        # reporting classifier results:
-        # test_y_hat = torch.squeeze(torch.cat(clf_trainer.predict(lightning_classifier, datamodule=dataset), dim=0), dim=1)
-        test_y_hat = torch.cat(clf_trainer.predict(lightning_classifier, datamodule=dataset), dim=0)
-
-        pred_df = pd.DataFrame.from_dict({"label": test_y.numpy(), "logits": test_y_hat.numpy(), "predictions": torch.round(nn.Sigmoid()(test_y_hat)).numpy()})
-
-        task.upload_artifact(name="predictions dataframe", artifact_object=pred_df)
-
 
         # aggregate cross-validation results:
         val_metrics = trainer.validate(lightning_model, datamodule=dataset)
         val_loss = val_metrics[0]["val_loss"]
         test_metrics = trainer.test(lightning_model, datamodule=dataset)
         test_loss = test_metrics[0]["test_loss"]
-        
-        # val_metrics = clf_trainer.validate(lightning_classifier, datamodule=dataset)
-        # val_loss = val_metrics[0]["val_loss"]
-        # test_metrics = clf_trainer.test(lightning_classifier, datamodule=dataset)
-        # test_loss = test_metrics[0]["test_loss"]
         
         cv_df = pd.concat([cv_df, pd.DataFrame.from_dict({"fold": [k], "val_loss": [val_loss], "test_loss": [test_loss]})])
 
