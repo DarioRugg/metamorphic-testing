@@ -13,13 +13,14 @@ from torch import nn
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-from clearml import Task
+from clearml import OutputModel, Task
 from scripts.utils import adjust_paths, connect_confiuration, calculate_layers_dims, dev_test_param_overwrite
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="ae_config")
 def main(cfg : DictConfig) -> None:
-    task = Task.init(project_name='e-muse/PartialTraining', task_name=cfg.task_name)
+    task = Task.init(project_name='e-muse/PartialTraining', task_name=cfg.task_name,
+                     auto_connect_frameworks={"pytorch": False})
 
     task.set_base_docker(
         docker_image='rugg/aebias:latest',
@@ -55,12 +56,12 @@ def main(cfg : DictConfig) -> None:
 
 
         # training aeuto-encoder:
-        checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="model_to_test", save_weights_only=True)
+        checkpoint_callback = ModelCheckpoint(dirpath="assets/weights", filename="best weights" if not cfg.cross_validation.flag else f"best weights fold {k}", save_weights_only=True)
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=5e-5, patience=10),
                         checkpoint_callback]
         
-        if cfg.ae_model.name == "ae":
-            lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
+        lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
+        clearml_model_instance = OutputModel(task=task, config_dict=OmegaConf.to_yaml(cfg.ae_model), name=f"{cfg.task_name} - best weights" if not cfg.cross_validation.flag else f"{cfg.task_name} - best weights fold {k}")
 
         trainer = Trainer(max_epochs=cfg.ae_model.epochs, callbacks=callbacks,
                           log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run, 
@@ -70,7 +71,8 @@ def main(cfg : DictConfig) -> None:
 
 
         # loading best models:
-        lightning_model.load_from_checkpoint(checkpoint_callback.best_model_path)
+        clearml_model_instance.update_weights(weights_filename=checkpoint_callback.best_model_path)
+        lightning_model.load_from_checkpoint(clearml_model_instance.get_weights())
 
 
         # reporting auto-encoder results:
