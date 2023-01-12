@@ -1,24 +1,21 @@
 defaults:
-  - _self_
   - ae_model: ae
   - dataset: ibd
   - machine: gpu
-  - logs: prostate
+  - _self_
+  - shared_config
 
 task_name: "base ae task"
 
 seed: 1234
-
-test: true
-train: true
 fast_dev_run: false
+
+dataset:
+  oversample: true
 
 bias: true
 bias_type: "exclusion"
 # exclusion distortion
-
-dataset:
-  oversample: true
 
 cross_validation:
   flag: false

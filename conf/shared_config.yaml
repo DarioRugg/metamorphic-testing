@@ -1,14 +1,3 @@
-defaults:
-  - clf_model: shallow
-  - dataset: ibd
-  - machine: gpu
-  - _self_
-  - shared_config
-
-task_name: "base clf task"
-
-ae_task_id: ""
-
 seed: 1234
 fast_dev_run: false
 
@@ -22,6 +11,5 @@ cross_validation:
   folds: 10
 
 machine:
-  workers: 8
   execution_type: "draft"
   # draft remote local

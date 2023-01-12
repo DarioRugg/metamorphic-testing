@@ -1,25 +1,21 @@
 defaults:
-  - _self_
   - ae_model: ae
   - clf_model: shallow
   - dataset: ibd
   - machine: gpu
-  - logs: prostate
+  - _self_
 
 task_name: "base task"
 
 seed: 1234
-
-test: true
-train: true
 fast_dev_run: false
+
+dataset:
+  oversample: true
 
 bias: true
 bias_type: "exclusion"
 # exclusion distortion
-
-dataset:
-  oversample: true
 
 cross_validation:
   flag: false
