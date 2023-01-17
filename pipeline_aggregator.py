@@ -1,5 +1,6 @@
 from clearml import Task
 from matplotlib import patches, pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -20,12 +21,9 @@ def get_data(cfg: OmegaConf) -> list[pd.DataFrame, pd.DataFrame]:
     clf_biased_df = pd.read_csv(Task.get_task(task_id=cfg.biased_task_id.clf).artifacts["predictions dataframe"].get_local_copy(), index_col=0)
     clf_biased_df["absolute_error"] = np.abs(clf_biased_df["label"] - clf_biased_df["probabilities"])
 
-    print(clf_biased_df)
-
-
-    ae_df = pd.concat([ae_standard_df.drop(columns="label").add_suffix("_standard"), ae_biased_df.drop(columns="label").add_suffix("_biased")])
+    ae_df = pd.concat([ae_standard_df.drop(columns="label").add_suffix("_standard"), ae_biased_df.drop(columns="label").add_suffix("_biased")], axis=1)
     ae_df["label"] = ae_standard_df["label"]
-    clf_df = pd.concat([clf_standard_df.drop(columns="label").add_suffix("_standard"), clf_biased_df.drop(columns="label").add_suffix("_biased")])
+    clf_df = pd.concat([clf_standard_df.drop(columns="label").add_suffix("_standard"), clf_biased_df.drop(columns="label").add_suffix("_biased")], axis=1)
     clf_df["label"] = clf_standard_df["label"]
     
     return ae_df, clf_df
@@ -33,7 +31,7 @@ def get_data(cfg: OmegaConf) -> list[pd.DataFrame, pd.DataFrame]:
 
 @hydra.main(version_base=None, config_path="conf", config_name="aggregator_config")
 def main(cfg : DictConfig) -> None:
-    task = Task.init(project_name='e-muse/PartialTraining',
+    task: Task = Task.init(project_name='e-muse/PartialTraining',
                     task_name=cfg.task_name,
                     task_type=Task.TaskTypes.monitor)
 
@@ -101,20 +99,21 @@ def main(cfg : DictConfig) -> None:
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     task.get_logger().report_matplotlib_figure(title="Classifier - ROC curve", series="", figure=plt.gcf())
+    plt.close()
 
-    for loss_name, loss in [("MSE", "mse"), ("Cross-Entropy", "ce")]:
-        plt.scatter(clf_df[clf_df["label"]==0][f"probabilities_{training_startegy}"], ae_df[ae_df["label"]==0][f"{loss}_standard"], marker="o", c="green")
-        plt.scatter(clf_df[clf_df["label"]==1][f"probabilities_{training_startegy}"], ae_df[ae_df["label"]==1][f"{loss}_standard"], marker="o", c="red")
-        plt.scatter(clf_df[clf_df["label"]==0][f"probabilities_{training_startegy}"], ae_df[ae_df["label"]==0][f"{loss}_biased"], marker="^", c="green")
-        plt.scatter(clf_df[clf_df["label"]==1][f"probabilities_{training_startegy}"], ae_df[ae_df["label"]==1][f"{loss}_biased"], marker="^", c="red")
-        plt.title(f"Classifier - scatterplot ({cfg.dataset} dataset)", fontdict={"size":15})
-        plt.legend([patches.Patch(color='green', label='healthy'),
-                    patches.Patch(color='red', label='pathological'),
-                    patches.Patch(marker='o', label='standard training'),
-                    patches.Patch(marker='^', label='biased training')])
-        plt.xlabel('Classifier predictions')
-        plt.ylabel(f'Auto-Encoder error ({loss_name})')
-        task.get_logger().report_matplotlib_figure(title="Classifier - scatterplot", series="", figure=plt.gcf())
+    plt.scatter(clf_df[clf_df["label"]==0][f"probabilities_standard"], ae_df[ae_df["label"]==0][f"mse_standard"], marker="o", c="forestgreen")
+    plt.scatter(clf_df[clf_df["label"]==1][f"probabilities_standard"], ae_df[ae_df["label"]==1][f"mse_standard"], marker="o", c="tomato")
+    plt.scatter(clf_df[clf_df["label"]==0][f"probabilities_biased"], ae_df[ae_df["label"]==0][f"mse_biased"], marker="^", c="darkgreen")
+    plt.scatter(clf_df[clf_df["label"]==1][f"probabilities_biased"], ae_df[ae_df["label"]==1][f"mse_biased"], marker="^", c="red")
+    plt.title(f"Classifier - scatterplot ({cfg.dataset} dataset)", fontdict={"size":15})
+    plt.legend(handles=[patches.Patch(color='green', label='healthy'),
+                patches.Patch(color='red', label='pathological'),
+                Line2D([0], [0], marker='o', markerfacecolor='grey', color='w', markersize=10, label='standard training'),
+                Line2D([0], [0], marker='^', markerfacecolor='grey', color='w', markersize=10, label='biased training')])
+    plt.xlabel('Classifier squared error')
+    plt.ylabel(f'Auto-Encoder MSE')
+    task.get_logger().report_matplotlib_figure(title="Classifier - scatterplot", series="", figure=plt.gcf(), report_interactive=False)
+    plt.close()
 
 
 if __name__ == '__main__':

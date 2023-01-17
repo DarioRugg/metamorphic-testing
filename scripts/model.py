@@ -20,7 +20,7 @@ class Encoder(torch.nn.Module):
 
         self.model = nn.Sequential(OrderedDict(itertools.chain.from_iterable([
                 [(f'linear_{i}', nn.Linear(dims[i-1], dims[i])),
-                 (f'batch_norm_{i}', nn.Dropout(model_cfg.dropout_prob)) if i%2==0 else (f'batch_norm_{i}', nn.BatchNorm1d(dims[i])),
+                 (f'dropout_{i}', nn.Dropout(model_cfg.dropout_prob)) if i%2==0 else (f'batch_norm_{i}', nn.BatchNorm1d(dims[i])),
                  (f'relu_{i}', nn.ReLU())] if i < len(dims)-1 else 
                 [(f'linear_{i}', nn.Linear(dims[i-1], dims[i])),
                  tuple(self._last_activation_function(i))] 
@@ -132,14 +132,37 @@ class LitAutoEncoder(pl.LightningModule):
         return x_hat
 
 
-class Classifier(torch.nn.Module):
+class ShallowNN(torch.nn.Module):
     def __init__(self, model_cfg: DictConfig, input_shape: int) -> None:
         super().__init__()
 
-        self.model = nn.Sequential(OrderedDict([(f'linear_layer', nn.Linear(input_shape, 1))]))
+        self.model = self._get_model(model_cfg, input_shape)
+    
+    def _get_model(model_cfg: DictConfig, input_shape: int) -> nn.Sequential:
+        return nn.Sequential(OrderedDict([(f'linear_layer', nn.Linear(input_shape, 1))]))
 
     def forward(self, x):
         return torch.squeeze(self.model(x), dim=-1)
+
+
+class MLP(ShallowNN):
+    def _get_model(model_cfg: DictConfig, input_shape: int) -> nn.Sequential:
+        dims = [input_shape] + model_cfg.layers
+        model = nn.Sequential()
+
+        for i in range(len(dims)-1):
+            model.add_module(f'linear_layer_{i}', nn.Linear(dims[i], dims[i+1]))
+            model.add_module(f'activation_function_{i}', nn.ReLU())
+            model.add_module(f'dropout_{i}', nn.Dropout(model_cfg.dropout_prob))
+            if i%2==0:
+                model.add_module(f'batch_norm_{i}', nn.BatchNorm1d(dims[i]))
+        
+        # adding last layer withouth any activation
+        model.add_module(f'linear_layer_{i+1}', nn.Linear(dims[i+1], 1))
+        
+        return model
+
+
 
 
 class LitClassifier(pl.LightningModule):
@@ -152,8 +175,11 @@ class LitClassifier(pl.LightningModule):
 
         self.auto_encoder = LitAutoEncoder(ae_cfg, input_shape=input_shape, distortion=False).load_from_checkpoint(ae_checkpoint_path)
         self.auto_encoder.freeze()
-
-        self.classifier = Classifier(self.model_cfg, input_shape=ae_cfg.layers_dims[-1])
+        
+        if self.model_cfg.name == "shallow":
+            self.classifier = ShallowNN(self.model_cfg, input_shape=ae_cfg.layers_dims[-1])
+        elif self.model_cfg.name == "mlp":
+            self.classifier = MLP(self.model_cfg, input_shape=ae_cfg.layers_dims[-1])
 
         self.lr = self.model_cfg.learning_rate
 

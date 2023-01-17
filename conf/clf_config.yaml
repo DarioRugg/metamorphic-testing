@@ -1,5 +1,5 @@
 defaults:
-  - model: ../clf_model/shallow
+  - model: clf/mlp
   - dataset: ibd
   - machine: gpu
   - _self_

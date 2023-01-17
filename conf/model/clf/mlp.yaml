@@ -1,0 +1,8 @@
+name: mlp
+learning_rate: 0.001
+layers: 
+  - 64
+  - 32
+  - 16
+dropout_prob: 0.5
+epochs: 200

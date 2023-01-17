@@ -64,6 +64,7 @@ def main(cfg : DictConfig) -> None:
         clearml_model_instance = OutputModel(task=task, name=f"{cfg.task_name} - best weights" if not cfg.cross_validation.flag else f"{cfg.task_name} - best weights fold {k}", 
                                              config_dict=OmegaConf.to_yaml(OmegaConf.create({"ae_model": cfg.model, "bias": cfg.bias, "bias_type": cfg.bias_type})),
                                              comment="Standard training" if not cfg.bias else f"Biased training\nWith {cfg.bias_type} bias type")
+        task.connect(clearml_model_instance, name="best weights - fold {k}" if cfg.cross_validation.flag else "best weights")
 
         trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks,
                           log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run, 

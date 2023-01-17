@@ -1,20 +1,20 @@
 task_name: 'pipeline aggregator'
 
-standard_task_id:
-  ae: ""
-  clf: ""
-biased_task_id:
-  ae: ""
-  clf: ""
-execution_type: "draft"
-
-
 # standard_task_id:
-#   ae: "25e76c3b24f341568dea2cb58ba15e54"
-#   clf: "1f0bfae8d5114483a5d77e737a3529d8"
+#   ae: ""
+#   clf: ""
 # biased_task_id:
-#   ae: "c68fa5bd4c5d481faad709895689e6f1"
-#   clf: "16df221cd17444c4a2642543ef7f6c28"
-# execution_type: "local"
+#   ae: ""
+#   clf: ""
+# execution_type: "draft"
+
+
+standard_task_id:
+  ae: "a507fe4976e74e8999beb88b3183cf6c"
+  clf: "bc202c7b65c14f609061e1e110a1c341"
+biased_task_id:
+  ae: "fe8c9e484efc431c89f8369bd227f88f"
+  clf: "7acfa2a48da245dcbf035e02952136f7"
+execution_type: "local"
 
 dataset: ibd

@@ -60,7 +60,7 @@ def main(cfg : DictConfig) -> None:
                          checkpoint_callback]
 
         # getting the AE model from the previous task 
-        assert len(Task.get_task(task_id="12287fb4fb134e21a378031d4583ad6c").get_models()["output"]) == cfg.cross_validation.folds if cfg.cross_validation.flag else 1, \
+        assert len(Task.get_task(task_id=cfg.ae_task_id).get_models()["output"]) == cfg.cross_validation.folds if cfg.cross_validation.flag else 1, \
             "either there are multiple models when cross validation is false or there is only one model when cross validation is true"
         clearml_ae_model_instance = InputModel(Task.get_task(task_id=cfg.ae_task_id).get_models()["output"][k if cfg.cross_validation.flag else 0].id, 
                                                name="pretrained auto-encoder - fold {k}" if cfg.cross_validation.flag else "pretrained auto-encoder")
@@ -72,6 +72,7 @@ def main(cfg : DictConfig) -> None:
         clearml_model_instance = OutputModel(task=task, name=f"{cfg.task_name} - best weights" if not cfg.cross_validation.flag else f"{cfg.task_name} - best weights fold {k}", 
                                              config_dict=OmegaConf.to_yaml(OmegaConf.merge(OmegaConf.create({"clf_model": cfg.model}), OmegaConf.create(clearml_ae_model_instance.config_text))),
                                              comment=clearml_ae_model_instance.comment)
+        task.connect(clearml_model_instance, name="best weights - fold {k}" if cfg.cross_validation.flag else "best weights")
 
         trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks,
                               log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run, 

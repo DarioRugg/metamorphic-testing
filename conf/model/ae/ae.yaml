@@ -2,7 +2,7 @@ name: ae
 num_layers: 3
 start_dim: 32
 layers_dims: []
-dropout_prob: 0.03
+dropout_prob: 0.1
 learning_rate: 0.001
 epochs: 200
 loss: mse
