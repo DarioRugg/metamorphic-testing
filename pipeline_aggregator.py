@@ -1,12 +1,34 @@
 from clearml import Task
-from matplotlib import pyplot as plt
+from matplotlib import patches, pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
+from sklearn.metrics import roc_curve
 
 from scripts.utils import connect_confiuration
+
+
+def get_data(cfg: OmegaConf) -> list[pd.DataFrame, pd.DataFrame]:
+    
+    ae_standard_df = pd.read_csv(Task.get_task(task_id=cfg.standard_task_id.ae).artifacts["losses dataframe"].get_local_copy(), index_col=0)
+    ae_biased_df = pd.read_csv(Task.get_task(task_id=cfg.biased_task_id.ae).artifacts["losses dataframe"].get_local_copy(), index_col=0)
+    clf_standard_df = pd.read_csv(Task.get_task(task_id=cfg.standard_task_id.clf).artifacts["predictions dataframe"].get_local_copy(), index_col=0)
+    clf_standard_df["absolute_error"] = clf_standard_df["label"] - clf_standard_df["probabilities"]
+    clf_biased_df = pd.read_csv(Task.get_task(task_id=cfg.biased_task_id.clf).artifacts["predictions dataframe"].get_local_copy(), index_col=0)
+    clf_biased_df["absolute_error"] = np.abs(clf_biased_df["label"] - clf_biased_df["probabilities"])
+
+    print(clf_biased_df)
+
+
+    ae_df = pd.concat([ae_standard_df.drop(columns="label").add_suffix("_standard"), ae_biased_df.drop(columns="label").add_suffix("_biased")])
+    ae_df["label"] = ae_standard_df["label"]
+    clf_df = pd.concat([clf_standard_df.drop(columns="label").add_suffix("_standard"), clf_biased_df.drop(columns="label").add_suffix("_biased")])
+    clf_df["label"] = clf_standard_df["label"]
+    
+    return ae_df, clf_df
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="aggregator_config")
@@ -28,42 +50,71 @@ def main(cfg : DictConfig) -> None:
 
     cfg = connect_confiuration(clearml_task=task, configuration=cfg)
 
-    task.execute_remotely()
+    
+    if cfg.execution_type == "draft":
+        task.execute_remotely()
+    elif cfg.execution_type == "remote":
+        task.execute_remotely(queue_name="rgai-gpu-01-cpu:1")
     
     print(OmegaConf.to_yaml(cfg))
-    
-    standard_loss_df = pd.read_csv(Task.get_task(task_id=cfg.standard_task_id).artifacts["losses dataframe"].get_local_copy(), index_col=0)
-    biased_loss_df = pd.read_csv(Task.get_task(task_id=cfg.biased_task_id).artifacts["losses dataframe"].get_local_copy(), index_col=0)
 
+    ae_df, clf_df = get_data(cfg)
+    
+    # auto-encoder results reporting
     for loss_name, loss in [("MSE", "mse"), ("Cross-Entropy", "ce")]:
 
-        for model_name, model_results in [("standard", standard_loss_df), ("biased", biased_loss_df)]:
-            sns.kdeplot(model_results[model_results["label"]==0][loss], label="control", fill=True, color="green" if model_name=="standard" else "purple")
-            sns.kdeplot(model_results[model_results["label"]==1][loss], label="test", fill=True, color="red" if model_name=="standard" else "yellow")
+        for training_startegy in ["standard", "biased"]:
+            sns.kdeplot(ae_df[ae_df["label"]==0][f"{loss}_{training_startegy}"], label="healthy", fill=True, color="green" if training_startegy=="standard" else "purple")
+            sns.kdeplot(ae_df[ae_df["label"]==1][f"{loss}_{training_startegy}"], label="pathological", fill=True, color="red" if training_startegy=="standard" else "yellow")
             plt.legend()
-            plt.title(f"{loss_name} losses distribution {model_name} experiment ({cfg.dataset} dataset)", fontdict={"size":15})
+            plt.title(f"Auto-Encoder - {loss_name} losses distribution {training_startegy} experiment ({cfg.dataset} dataset)", fontdict={"size":15})
             plt.xlabel("Reconstruction loss")
-            task.get_logger().report_matplotlib_figure(title=f"Losses distribution {model_name} experiment {loss_name}", series="test set", figure=plt.gcf())
+            task.get_logger().report_matplotlib_figure(title=f"Auto-Encoder - Losses distribution {training_startegy} experiment", series=f"{loss_name} loss", figure=plt.gcf())
             plt.close()
         
-        sns.kdeplot(standard_loss_df[standard_loss_df["label"]==0][loss], label="control standard", fill=True, color="green")
-        sns.kdeplot(standard_loss_df[standard_loss_df["label"]==1][loss], label="test standard", fill=True, color="red")
-        sns.kdeplot(biased_loss_df[biased_loss_df["label"]==0][loss], label="control biased", fill=True, color="purple")
-        sns.kdeplot(biased_loss_df[biased_loss_df["label"]==1][loss], label="test biased", fill=True, color="yellow")
+        sns.kdeplot(ae_df[ae_df["label"]==0][f"{loss}_standard"], label="healthy standard", fill=True, color="green")
+        sns.kdeplot(ae_df[ae_df["label"]==1][f"{loss}_standard"], label="pathological standard", fill=True, color="red")
+        sns.kdeplot(ae_df[ae_df["label"]==0][f"{loss}_biased"], label="healthy biased", fill=True, color="purple")
+        sns.kdeplot(ae_df[ae_df["label"]==1][f"{loss}_biased"], label="pathological biased", fill=True, color="yellow")
         plt.legend()
-        plt.title(f"{loss_name} losses distribution both experiments ({cfg.dataset} dataset)", fontdict={"size":15})
+        plt.title(f"Auto-Encoder - {loss_name} losses distribution both experiments ({cfg.dataset} dataset)", fontdict={"size":15})
         plt.xlabel("Reconstruction loss")
-        task.get_logger().report_matplotlib_figure(title=f"Losses distribution both experiments {loss_name}", series="test set", figure=plt.gcf())
+        task.get_logger().report_matplotlib_figure(title="Auto-Encoder - Losses distribution both experiments", series=f"{loss_name} loss", figure=plt.gcf())
         plt.close()
 
-        difference_df = pd.DataFrame.from_dict({"label": biased_loss_df["label"], "difference": (biased_loss_df[loss] - standard_loss_df[loss]).abs()})
-        sns.kdeplot(difference_df[difference_df["label"]==0]["difference"], label="control", fill=True)
-        sns.kdeplot(difference_df[difference_df["label"]==1]["difference"], label="test", fill=True)
-        plt.legend()
-        plt.title(f"{loss_name} absolute difference on reconstruction ({cfg.dataset} dataset)", fontdict={"size":15})
-        plt.xlabel("Reconstruction difference")
-        task.get_logger().report_matplotlib_figure(title=f"Absolute difference on reconstruction {loss_name}", series="test set", figure=plt.gcf())
-        plt.close()
+        if np.sum(np.abs(ae_df[f"{loss}_standard"] - ae_df[f"{loss}_biased"])) > 0:
+            difference_df = pd.DataFrame.from_dict({"label": ae_df["label"], "difference": np.abs(ae_df[f"{loss}_standard"] - ae_df[f"{loss}_biased"])})
+            sns.kdeplot(difference_df[difference_df["label"]==0]["difference"], label="healthy", fill=True)
+            sns.kdeplot(difference_df[difference_df["label"]==1]["difference"], label="pathological", fill=True)
+            plt.legend()
+            plt.title(f"Auto-Encoder - {loss_name} absolute difference on reconstruction ({cfg.dataset} dataset)", fontdict={"size":15})
+            plt.xlabel("Reconstruction difference")
+            task.get_logger().report_matplotlib_figure(title="Auto-Encoder - Absolute difference on reconstruction", series=f"{loss_name} loss", figure=plt.gcf())
+            plt.close()
+    
+    # classifier results reporting
+    for training_startegy in ["standard", "biased"]:
+        fpr, tpr, thresholds = roc_curve(clf_df["label"], clf_df[f"probabilities_{training_startegy}"])
+        plt.plot(fpr, tpr, label=f"{training_startegy.capitalize()} training")
+    plt.title(f"Classifier - ROC curve ({cfg.dataset} dataset)", fontdict={"size":15})
+    plt.legend()
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    task.get_logger().report_matplotlib_figure(title="Classifier - ROC curve", series="", figure=plt.gcf())
+
+    for loss_name, loss in [("MSE", "mse"), ("Cross-Entropy", "ce")]:
+        plt.scatter(clf_df[clf_df["label"]==0][f"probabilities_{training_startegy}"], ae_df[ae_df["label"]==0][f"{loss}_standard"], marker="o", c="green")
+        plt.scatter(clf_df[clf_df["label"]==1][f"probabilities_{training_startegy}"], ae_df[ae_df["label"]==1][f"{loss}_standard"], marker="o", c="red")
+        plt.scatter(clf_df[clf_df["label"]==0][f"probabilities_{training_startegy}"], ae_df[ae_df["label"]==0][f"{loss}_biased"], marker="^", c="green")
+        plt.scatter(clf_df[clf_df["label"]==1][f"probabilities_{training_startegy}"], ae_df[ae_df["label"]==1][f"{loss}_biased"], marker="^", c="red")
+        plt.title(f"Classifier - scatterplot ({cfg.dataset} dataset)", fontdict={"size":15})
+        plt.legend([patches.Patch(color='green', label='healthy'),
+                    patches.Patch(color='red', label='pathological'),
+                    patches.Patch(marker='o', label='standard training'),
+                    patches.Patch(marker='^', label='biased training')])
+        plt.xlabel('Classifier predictions')
+        plt.ylabel(f'Auto-Encoder error ({loss_name})')
+        task.get_logger().report_matplotlib_figure(title="Classifier - scatterplot", series="", figure=plt.gcf())
 
 
 if __name__ == '__main__':

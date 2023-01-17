@@ -1,5 +1,5 @@
 defaults:
-  - clf_model: shallow
+  - model: ../clf_model/shallow
   - dataset: ibd
   - machine: gpu
   - _self_
@@ -14,8 +14,6 @@ fast_dev_run: false
 
 dataset:
   oversample: true
-
-bias: false
 
 cross_validation:
   flag: false

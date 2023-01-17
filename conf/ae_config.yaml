@@ -1,5 +1,5 @@
 defaults:
-  - ae_model: ae
+  - model: ../ae_model/ae
   - dataset: ibd
   - machine: gpu
   - _self_

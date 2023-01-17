@@ -2,7 +2,8 @@ defaults:
   - _self_
   - dataset: ibd
 
-base_task_name: "base task"
+ae_base_task_name: "base ae task"
+clf_base_task_name: "base clf task"
 aggregator_task_name: "pipeline aggregator"
 
 machine:

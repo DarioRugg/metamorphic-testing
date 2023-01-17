@@ -11,15 +11,15 @@ def connect_confiuration(clearml_task: Task, configuration: OmegaConf) -> OmegaC
     return OmegaConf.create(str(clearml_task.connect(OmegaConf.to_object(configuration), name="hydra_config")))
 
 def dev_test_param_overwrite(cfg: OmegaConf):
-    cfg.ae_model.num_layers=1
-    cfg.ae_model.start_dim=32
+    cfg.model.num_layers=1
+    cfg.model.start_dim=32
     cfg.cross_validation.folds=2
     cfg.machine.execution_type="local"
 
 def calculate_layers_dims(cfg: OmegaConf):
-    if cfg.ae_model.num_layers == 1:
-        cfg.ae_model.layers_dims = [cfg.ae_model.start_dim]
+    if cfg.model.num_layers == 1:
+        cfg.model.layers_dims = [cfg.model.start_dim]
     else:
-        cfg.ae_model.layers_dims = [cfg.ae_model.start_dim]*round(cfg.ae_model.num_layers/3) + \
-                                [int(cfg.ae_model.start_dim/2) if cfg.ae_model.start_dim/2 >= 16 else 16]*round(cfg.ae_model.num_layers/3) + \
-                                [int(cfg.ae_model.start_dim/4) if cfg.ae_model.start_dim/4 >= 8 else 8]*(cfg.ae_model.num_layers-round(cfg.ae_model.num_layers/3)*2)
+        cfg.model.layers_dims = [cfg.model.start_dim]*round(cfg.model.num_layers/3) + \
+                                [int(cfg.model.start_dim/2) if cfg.model.start_dim/2 >= 16 else 16]*round(cfg.model.num_layers/3) + \
+                                [int(cfg.model.start_dim/4) if cfg.model.start_dim/4 >= 8 else 8]*(cfg.model.num_layers-round(cfg.model.num_layers/3)*2)

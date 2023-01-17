@@ -59,10 +59,10 @@ def main(cfg : DictConfig) -> None:
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=5e-5, patience=10),
                         checkpoint_callback]
         
-        if cfg.ae_model.name == "ae":
+        if cfg.model.name == "ae":
             lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
 
-        trainer = Trainer(max_epochs=cfg.ae_model.epochs, callbacks=callbacks,
+        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks,
                           log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run, 
                           accelerator=cfg.machine.accelerator, gpus=[cfg.machine.gpu_index] if cfg.machine.execution_type == "local" and cfg.machine.accelerator == "gpu" else None)
 

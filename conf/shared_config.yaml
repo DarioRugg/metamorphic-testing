@@ -4,8 +4,6 @@ fast_dev_run: false
 dataset:
   oversample: true
 
-bias: false
-
 cross_validation:
   flag: false
   folds: 10

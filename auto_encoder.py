@@ -19,7 +19,7 @@ from scripts.utils import adjust_paths, connect_confiuration, calculate_layers_d
 
 @hydra.main(version_base=None, config_path="conf", config_name="ae_config")
 def main(cfg : DictConfig) -> None:
-    task = Task.init(project_name='e-muse/PartialTraining', task_name=cfg.task_name,
+    task: Task = Task.init(project_name='e-muse/PartialTraining', task_name=cfg.task_name,
                      auto_connect_frameworks={"pytorch": False})
 
     task.set_base_docker(
@@ -52,7 +52,7 @@ def main(cfg : DictConfig) -> None:
     for k in range(cfg.cross_validation.folds) if cfg.cross_validation.flag else [0]:
         
         # preparing dataset:
-        dataset = KFoldIBDDataModule(cfg, k) if cfg.cross_validation.flag else IBDDataModule(cfg)
+        dataset = KFoldIBDDataModule(cfg, k, exclusion=cfg.bias and cfg.bias_type == "exclusion") if cfg.cross_validation.flag else IBDDataModule(cfg, exclusion=cfg.bias and cfg.bias_type == "exclusion")
 
 
         # training aeuto-encoder:
@@ -60,32 +60,37 @@ def main(cfg : DictConfig) -> None:
         callbacks = [EarlyStopping(monitor="val_loss", min_delta=5e-5, patience=10),
                         checkpoint_callback]
         
-        lightning_model = LitAutoEncoder(cfg, dataset.get_num_features())
-        clearml_model_instance = OutputModel(task=task, config_dict=OmegaConf.to_yaml(cfg.ae_model), name=f"{cfg.task_name} - best weights" if not cfg.cross_validation.flag else f"{cfg.task_name} - best weights fold {k}")
+        lightning_model = LitAutoEncoder(cfg.model, dataset.get_num_features(), distortion=cfg.bias and cfg.bias_type=="distortion")
+        clearml_model_instance = OutputModel(task=task, name=f"{cfg.task_name} - best weights" if not cfg.cross_validation.flag else f"{cfg.task_name} - best weights fold {k}", 
+                                             config_dict=OmegaConf.to_yaml(OmegaConf.create({"ae_model": cfg.model, "bias": cfg.bias, "bias_type": cfg.bias_type})),
+                                             comment="Standard training" if not cfg.bias else f"Biased training\nWith {cfg.bias_type} bias type")
 
-        trainer = Trainer(max_epochs=cfg.ae_model.epochs, callbacks=callbacks,
+        trainer = Trainer(max_epochs=cfg.model.epochs, callbacks=callbacks,
                           log_every_n_steps=10, fast_dev_run=cfg.fast_dev_run, 
                           accelerator=cfg.machine.accelerator, gpus=[cfg.machine.gpu_index] if cfg.machine.execution_type == "local" and cfg.machine.accelerator == "gpu" else None)
 
         trainer.fit(lightning_model, datamodule=dataset)
 
+        clearml_model_instance.update_weights(weights_filename=checkpoint_callback.best_model_path)
+        # using the artifact to store the weights since there is the ClearML bug when downloading the model
+        task.upload_artifact(name="auto-encoder model weights", artifact_object=clearml_model_instance.get_weights())
 
         # loading best models:
-        clearml_model_instance.update_weights(weights_filename=checkpoint_callback.best_model_path)
         lightning_model.load_from_checkpoint(clearml_model_instance.get_weights())
 
+        
+        if k==0:
+            # reporting auto-encoder results:
+            test_x_hat = torch.cat(trainer.predict(lightning_model, datamodule=dataset), dim=0)
 
-        # reporting auto-encoder results:
-        test_x_hat = torch.cat(trainer.predict(lightning_model, datamodule=dataset), dim=0)
+            test_x, test_y = dataset.test[:]
 
-        test_x, test_y = dataset.test[:]
+            mse_loss = torch.mean(nn.MSELoss(reduction='none')(test_x, test_x_hat), dim=1)
+            ce_loss = torch.mean(nn.BCEWithLogitsLoss(reduction='none')(test_x, test_x_hat), dim=1)
 
-        mse_loss = torch.mean(nn.MSELoss(reduction='none')(test_x, test_x_hat), dim=1)
-        ce_loss = torch.mean(nn.BCEWithLogitsLoss(reduction='none')(test_x, test_x_hat), dim=1)
+            dist_df = pd.DataFrame.from_dict({"label": test_y.numpy(), "mse": mse_loss.numpy(), "ce": ce_loss.numpy()})
 
-        dist_df = pd.DataFrame.from_dict({"label": test_y.numpy(), "mse": mse_loss.numpy(), "ce": ce_loss.numpy()})
-
-        task.upload_artifact(name="losses dataframe", artifact_object=dist_df)
+            task.upload_artifact(name="losses dataframe", artifact_object=dist_df)
 
 
         # aggregate cross-validation results:
@@ -94,7 +99,7 @@ def main(cfg : DictConfig) -> None:
         test_metrics = trainer.test(lightning_model, datamodule=dataset)
         test_loss = test_metrics[0]["test_loss"]
         
-        cv_df = pd.concat([cv_df, pd.DataFrame.from_dict({"fold": [k], "val_loss": [val_loss], "test_loss": [test_loss]})])
+        cv_df = pd.concat([cv_df, pd.DataFrame.from_dict({"fold": [k], "val_loss": [val_loss], "test_loss": [test_loss]})], ignore_index=True)
 
 
     if cfg.cross_validation.flag:
