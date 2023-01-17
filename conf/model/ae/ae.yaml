@@ -1,6 +1,6 @@
 name: ae
-num_layers: 3
-start_dim: 32
+num_layers: 8
+start_dim: 128
 layers_dims: []
 dropout_prob: 0.1
 learning_rate: 0.001

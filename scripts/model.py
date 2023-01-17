@@ -153,9 +153,12 @@ class MLP(ShallowNN):
         for i in range(len(dims)-1):
             model.add_module(f'linear_layer_{i}', nn.Linear(dims[i], dims[i+1]))
             model.add_module(f'activation_function_{i}', nn.ReLU())
-            model.add_module(f'dropout_{i}', nn.Dropout(model_cfg.dropout_prob))
             if i%2==0:
-                model.add_module(f'batch_norm_{i}', nn.BatchNorm1d(dims[i+1]))
+                pass
+                # model.add_module(f'batch_norm_{i}', nn.BatchNorm1d(dims[i+1]))
+            else:
+                model.add_module(f'dropout_{i}', nn.Dropout(model_cfg.dropout_prob))
+
         
         # adding last layer withouth any activation
         model.add_module(f'linear_layer_{i+1}', nn.Linear(dims[i+1], 1))

@@ -1,0 +1,8 @@
+task_name: "base clf task"
+
+optimization:
+  trials: 15
+  time_limit: 600
+
+machine:
+  gpu_index: 1
