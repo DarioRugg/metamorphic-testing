@@ -138,7 +138,7 @@ class ShallowNN(torch.nn.Module):
 
         self.model = self._get_model(model_cfg, input_shape)
     
-    def _get_model(model_cfg: DictConfig, input_shape: int) -> nn.Sequential:
+    def _get_model(self, model_cfg: DictConfig, input_shape: int) -> nn.Sequential:
         return nn.Sequential(OrderedDict([(f'linear_layer', nn.Linear(input_shape, 1))]))
 
     def forward(self, x):
@@ -146,7 +146,7 @@ class ShallowNN(torch.nn.Module):
 
 
 class MLP(ShallowNN):
-    def _get_model(model_cfg: DictConfig, input_shape: int) -> nn.Sequential:
+    def _get_model(self, model_cfg: DictConfig, input_shape: int) -> nn.Sequential:
         dims = [input_shape] + model_cfg.layers
         model = nn.Sequential()
 
