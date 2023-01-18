@@ -1,10 +1,10 @@
 defaults:
   - _self_
   - dataset: ibd
-  - past_tasks: biased
+  - past_tasks: auto_encoders
 
 ae_base_task_name: "base ae task"
-clf_base_task_name: "base clf task"
+clf_base_task_name: "base clf svm task"
 aggregator_task_name: "pipeline aggregator"
 
 

@@ -133,6 +133,11 @@ class LitAutoEncoder(pl.LightningModule):
         return x_hat
 
 
+class LitEncoderOnly(LitAutoEncoder):
+    def forward(self, x):
+        return self.encode(x)
+
+
 class ShallowNN(torch.nn.Module):
     def __init__(self, model_cfg: DictConfig, input_shape: int) -> None:
         super().__init__()

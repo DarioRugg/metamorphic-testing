@@ -1,0 +1,25 @@
+defaults:
+  - model: clf/svm
+  - dataset: ibd
+  - machine: gpu
+  - _self_
+  - shared_config
+
+task_name: "base clf svm task"
+
+ae_task_id: ""
+
+seed: 1
+fast_dev_run: false
+
+dataset:
+  oversample: false
+
+cross_validation:
+  flag: false
+  folds: 10
+
+machine:
+  workers: 8
+  execution_type: "draft"
+  # draft remote local
