@@ -7,6 +7,7 @@ import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from torchmetrics.classification import BinaryF1Score, BinaryAccuracy
+from torchmetrics import AUROC
 
 import itertools
 
@@ -205,8 +206,16 @@ class LitClassifier(pl.LightningModule):
         y_hat = self(x)
 
         loss = self.metric(y_hat, y)
-        
         self.log("train_loss", loss)
+
+        accuracy = BinaryAccuracy().to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("train_accuracy", accuracy)
+
+        f1_score = BinaryF1Score().to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("train_f1_score", f1_score)
+        
+        auc_score = AUROC(task="binary").to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("train_auc_score", auc_score)
 
         return loss
     
@@ -223,6 +232,9 @@ class LitClassifier(pl.LightningModule):
 
         f1_score = BinaryF1Score().to(self.device)(nn.Sigmoid()(y_hat), y)
         self.log("val_f1_score", f1_score)
+        
+        auc_score = AUROC(task="binary").to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("val_auc_score", auc_score)
 
         return loss
         
@@ -239,6 +251,9 @@ class LitClassifier(pl.LightningModule):
 
         f1_score = BinaryF1Score().to(self.device)(nn.Sigmoid()(y_hat), y)
         self.log("test_f1_score", f1_score)
+        
+        auc_score = AUROC(task="binary").to(self.device)(nn.Sigmoid()(y_hat), y)
+        self.log("test_auc_score", auc_score)
 
         return loss
 

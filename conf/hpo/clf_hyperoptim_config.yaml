@@ -5,4 +5,4 @@ optimization:
   time_limit: 600
 
 machine:
-  gpu_index: 1
+  gpu_index: 2

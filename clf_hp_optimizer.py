@@ -54,8 +54,8 @@ def main(cfg : DictConfig) -> None:
         base_task_id=Task.get_task(project_name='e-muse/PartialTraining', task_name=cfg.task_name).id,
         hyper_parameters=hyper_parameters,
         
-        objective_metric_title='loss',
-        objective_metric_series='test',
+        objective_metric_title='val_loss',
+        objective_metric_series='val_loss',
         objective_metric_sign='min',
 
         execution_queue=execution_queue,
