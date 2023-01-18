@@ -75,7 +75,7 @@ class IBDDataModule(BaseDataModule):
 
     def split(self, data, labels) -> Iterator[np.array]:
         train_val_data, test_data, train_val_labels, test_labels= train_test_split(data, labels, test_size=0.2, random_state=self.cfg.seed, stratify=labels)
-        train_data, val_data, train_labels, val_labels= train_test_split(train_val_data, train_val_labels, test_size=len(test_labels), random_state=self.cfg.seed, stratify=train_val_labels)
+        train_data, val_data, train_labels, val_labels= train_test_split(train_val_data, train_val_labels, test_size=0.2, random_state=self.cfg.seed, stratify=train_val_labels)
         return train_data, val_data, test_data, train_labels, val_labels, test_labels
     
     def get_num_features(self) -> int:
@@ -100,7 +100,7 @@ class KFoldIBDDataModule(IBDDataModule):
 
         train_val_data, test_data = data[train_val_idx], data[test_idx]
         train_val_labels, test_labels = labels[train_val_idx], labels[test_idx]
-        train_data, val_data, train_labels, val_labels= train_test_split(train_val_data, train_val_labels, test_size=len(test_labels), random_state=self.cfg.seed, stratify=train_val_labels)
+        train_data, val_data, train_labels, val_labels= train_test_split(train_val_data, train_val_labels, test_size=0.2, random_state=self.cfg.seed, stratify=train_val_labels)
         
         return train_data, val_data, test_data, train_labels, val_labels, test_labels
             
