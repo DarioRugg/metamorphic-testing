@@ -18,4 +18,4 @@ past_tasks:
     clf: ""
 
 machine:
-  gpus_index: [1, 2]
+  gpus_index: [2, 2]

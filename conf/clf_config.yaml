@@ -9,11 +9,11 @@ task_name: "base clf task"
 
 ae_task_id: ""
 
-seed: 1234
+seed: 1
 fast_dev_run: false
 
 dataset:
-  oversample: true
+  oversample: false
 
 cross_validation:
   flag: false

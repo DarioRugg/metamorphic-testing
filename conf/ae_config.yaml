@@ -7,11 +7,11 @@ defaults:
 
 task_name: "base ae task"
 
-seed: 1234
+seed: 1
 fast_dev_run: false
 
 dataset:
-  oversample: true
+  oversample: false
 
 bias: true
 bias_type: "exclusion"

@@ -38,13 +38,10 @@ def main(cfg : DictConfig) -> None:
     task.execute_remotely(queue_name="services")
 
     hyper_parameters=[
-            UniformIntegerParameterRange('hydra_config/model/num_layers', min_value=2, max_value=9),
-            UniformIntegerParameterRange('hydra_config/model/start_dim', min_value=16, max_value=96, step_size=4),
             UniformParameterRange('hydra_config/model/dropout_prob', min_value=0, max_value=0.5),
             LogUniformParameterRange('hydra_config/model/learning_rate', min_value=1e-9, max_value=1e-3),
-            # DiscreteParameterRange('hydra_config/model/loss', values=["mse"]),
             # DiscreteParameterRange('hydra_config/dataset/batch_size', values=[16, 32, 64]),
-            DiscreteParameterRange("hydra_config/model/layer_dims", [(32), (64), (64, 32), (64, 64, 32, 16), (64, 64, 32, 32), (64, 64, 32, 32, 16), (64, 64, 32, 32, 32)])
+            DiscreteParameterRange("hydra_config/model/layer_dims", [(32), (64), (64, 32), (64, 64, 32, 16), (64, 64, 32, 32), (64, 64, 32, 32, 16), (64, 64, 32, 32, 32), (128, 64, 64, 32, 16), (256, 128, 64, 32, 16)])
         ]
 
 
