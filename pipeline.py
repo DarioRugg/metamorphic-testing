@@ -25,10 +25,12 @@ def main(cfg : DictConfig) -> None:
 
     pipe = PipelineController(name="Twin pipeline",
         project="e-muse/PartialTraining",
-        version="0.0.1"
+        version="0.0.3"
     )
 
-    if not cfg.past_tasks.use or cfg.past_tasks.standard.ae != "":
+    parents_to_wait = []
+
+    if not cfg.past_tasks.use or cfg.past_tasks.standard.ae == "":
         # standard training:
         pipe.add_step(name="auto-encoder standard training", 
                     base_task_project="e-muse/PartialTraining", 
@@ -39,8 +41,9 @@ def main(cfg : DictConfig) -> None:
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size},
                     execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[0]}')
+        parents_to_wait.append("auto-encoder standard training")
 
-    if not cfg.past_tasks.use or cfg.past_tasks.standard.clf != "":
+    if not cfg.past_tasks.use or cfg.past_tasks.standard.clf == "":
         pipe.add_step(name="classifier standard training", 
                     base_task_project="e-muse/PartialTraining", 
                     base_task_name=cfg.clf_base_task_name, 
@@ -48,11 +51,12 @@ def main(cfg : DictConfig) -> None:
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size,
-                                        "hydra_config/ae_task_id": "${auto-encoder standard training.id}"},
-                    parents=["auto-encoder standard training"],
+                                        "hydra_config/ae_task_id": "${auto-encoder standard training.id}" if not cfg.past_tasks.use or cfg.past_tasks.standard.ae == "" else cfg.past_tasks.standard.ae},
+                    parents=["auto-encoder standard training"] if not cfg.past_tasks.use or cfg.past_tasks.standard.ae == "" else None,
                     execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[0]}')
+        parents_to_wait.append("classifier standard training")
 
-    if not cfg.past_tasks.use or cfg.past_tasks.biased.ae != "":
+    if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "":
         # biased training
         pipe.add_step(name="auto-encoder biased training", 
                     base_task_project="e-muse/PartialTraining", 
@@ -63,8 +67,9 @@ def main(cfg : DictConfig) -> None:
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size},
                     execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[1]}')
+        parents_to_wait.append("auto-encoder biased training")
     
-    if not cfg.past_tasks.use or cfg.past_tasks.biased.clf != "":
+    if not cfg.past_tasks.use or cfg.past_tasks.biased.clf == "":
         pipe.add_step(name="classifier biased training", 
                     base_task_project="e-muse/PartialTraining", 
                     base_task_name=cfg.clf_base_task_name, 
@@ -72,21 +77,22 @@ def main(cfg : DictConfig) -> None:
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size,
-                                        "hydra_config/ae_task_id": "${auto-encoder biased training.id}"},
-                    parents=["auto-encoder biased training"],
+                                        "hydra_config/ae_task_id": "${auto-encoder biased training.id}" if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "" else cfg.past_tasks.biased.ae},
+                    parents=["auto-encoder biased training"] if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "" else None,
                     execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[1]}')
-
-        # results aggregation
-        pipe.add_step(name="experiments aggregator", 
-                    base_task_project="e-muse/PartialTraining", 
-                    base_task_name=cfg.aggregator_task_name,
-                    parameter_override={"hydra_config/dataset": cfg.dataset.name, 
-                                        "hydra_config/standard_task_id/ae": "${auto-encoder standard training.id}" if not cfg.past_tasks.use or cfg.past_tasks.standard.ae != "" else cfg.past_tasks.standard.ae,
-                                        "hydra_config/standard_task_id/clf": "${classifier standard training.id}" if not cfg.past_tasks.use or cfg.past_tasks.standard.clf != "" else cfg.past_tasks.standard.clf,
-                                        "hydra_config/biased_task_id/ae": "${auto-encoder biased training.id}" if not cfg.past_tasks.use or cfg.past_tasks.biased.ae != "" else cfg.past_tasks.biased.ae,
-                                        "hydra_config/biased_task_id/clf": "${classifier biased training.id}"} if not cfg.past_tasks.use or cfg.past_tasks.biased.clf != "" else cfg.past_tasks.biased.clf,
-                    parents=["classifier standard training", "classifier biased training"],
-                    execution_queue="rgai-gpu-01-cpu:1")
+        parents_to_wait.append("classifier biased training")
+    
+    # results aggregation
+    pipe.add_step(name="experiments aggregator", 
+                base_task_project="e-muse/PartialTraining", 
+                base_task_name=cfg.aggregator_task_name,
+                parameter_override={"hydra_config/dataset": cfg.dataset.name, 
+                                    "hydra_config/standard_task_id/ae": "${auto-encoder standard training.id}" if not cfg.past_tasks.use or cfg.past_tasks.standard.ae == "" else cfg.past_tasks.standard.ae,
+                                    "hydra_config/standard_task_id/clf": "${classifier standard training.id}" if not cfg.past_tasks.use or cfg.past_tasks.standard.clf == "" else cfg.past_tasks.standard.clf,
+                                    "hydra_config/biased_task_id/ae": "${auto-encoder biased training.id}" if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "" else cfg.past_tasks.biased.ae,
+                                    "hydra_config/biased_task_id/clf": "${classifier biased training.id}" if not cfg.past_tasks.use or cfg.past_tasks.biased.clf == "" else cfg.past_tasks.biased.clf},
+                parents=parents_to_wait,
+                execution_queue="rgai-gpu-01-cpu:1")
 
     pipe.start()
     pipe.wait()
