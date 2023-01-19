@@ -4,6 +4,7 @@ import seaborn as sns
 from sklearn.metrics import accuracy_score, roc_auc_score, f1_score
 import torch
 
+from torch.utils.data import DataLoader
 from scripts.model import LitEncoderOnly
 from scripts.dataloader import KFoldIBDDataModule, IBDDataModule
 from pytorch_lightning import Trainer, seed_everything
@@ -70,53 +71,54 @@ def main(cfg : DictConfig) -> None:
         
         lightning_ae.freeze()
 
-        trainer = Trainer(max_epochs=cfg.model.epochs, fast_dev_run=cfg.fast_dev_run, 
+        trainer = Trainer(max_epochs=-1, fast_dev_run=cfg.fast_dev_run, 
                               accelerator=cfg.machine.accelerator, gpus=[cfg.machine.gpu_index] if cfg.machine.execution_type == "local" and cfg.machine.accelerator == "gpu" else None)
         
-        # reporting classifier results:
-        encoded_train, y_train = torch.cat(trainer.predict(lightning_ae, dataloaders=dataset.train_dataloader()), dim=0).numpy(), dataset.train[:][1].numpy()
-        encoded_val, y_val = torch.cat(trainer.predict(lightning_ae, dataloaders=dataset.val_dataloader()), dim=0).numpy(), dataset.val[:][1].numpy()
-        encoded_test, y_test = torch.cat(trainer.predict(lightning_ae, dataloaders=dataset.test_dataloader()), dim=0).numpy(), dataset.test[:][1].numpy()
+        dataset.setup("predict")
+        encoded_train, y_train = tuple(map(lambda results: torch.cat(results, dim=0).numpy(), zip(*trainer.predict(lightning_ae, dataloaders=dataset.train_dataloader()))))
+        encoded_val, y_val = tuple(map(lambda results: torch.cat(results, dim=0).numpy(), zip(*trainer.predict(lightning_ae, dataloaders=dataset.val_dataloader()))))
+        encoded_test, y_test = tuple(map(lambda results: torch.cat(results, dim=0).numpy(), zip(*trainer.predict(lightning_ae, dataloaders=dataset.test_dataloader()))))
 
-        clf = svm.SVC()
+        clf = svm.SVC(probability=True, random_state=cfg.seed)
         clf.fit(encoded_train, y_train)
 
         yhat_val = clf.predict(encoded_val)
         yhat_test = clf.predict(encoded_test)
         
-        proba_val = clf.predict_proba(encoded_val)
-        proba_test = clf.predict_proba(encoded_test)
+        proba_val = clf.predict_proba(encoded_val)[:, 1]
+        proba_test = clf.predict_proba(encoded_test)[:, 1]
 
         if k==0:
             pred_df = pd.DataFrame.from_dict({"label": y_test, "predictions": yhat_test, "probabilities": proba_test})
             task.upload_artifact(name="predictions dataframe", artifact_object=pred_df)
         
+        # reporting classifier results:
         cv_df = pd.concat([cv_df, pd.DataFrame.from_dict({"fold": [k], "val_accuracy": accuracy_score(y_val, yhat_val), "test_accuracy": accuracy_score(y_test, yhat_test),
                                                                        "val_auc": roc_auc_score(y_val, proba_val), "test_auc": roc_auc_score(y_test, proba_test),
                                                                        "val_f1": f1_score(y_val, yhat_val), "test_f1": f1_score(y_test, yhat_test)})], ignore_index=True)
 
 
     if cfg.cross_validation.flag:
-        sns.kdeplot(cv_df["val_loss"], label="Validation", fill=True)
-        sns.kdeplot(cv_df["test_loss"], labels="Test", fill=True)
+        sns.kdeplot(cv_df["val_auc"], label="Validation", fill=True)
+        sns.kdeplot(cv_df["test_auc"], labels="Test", fill=True)
         plt.legend()
         plt.title("Cross-Validation Losses distribution", fontdict={"size":15})
         plt.xlabel("Reconstruction loss")
         task.get_logger().report_matplotlib_figure(title="Cross-Validation Losses distribution", series="Cross-Validation Losses distribution", figure=plt.gcf())
         plt.close()
 
-        task.get_logger().report_vector(title='Cross-Validation Losses', series='Cross-Validation Losses', values=cv_df[["val_loss", "test_loss"]].values.transpose(), labels=["Validation", "Test"], xlabels=cv_df["fold"], xaxis='Cross-Validation Folds', yaxis='Loss')
+        task.get_logger().report_vector(title='Cross-Validation Losses', series='Cross-Validation Losses', values=cv_df[["val_auc", "test_auc"]].values.transpose(), labels=["Validation", "Test"], xlabels=cv_df["fold"], xaxis='Cross-Validation Folds', yaxis='Loss')
         task.get_logger().report_table(title="Cross-Validation metrics", series="Cross-Validation metrics", iteration=0, table_plot=cv_df.set_index("fold", drop=True))
 
-        task.get_logger().report_scalar(title='cross-validation average loss', series='validation', value=cv_df["val_loss"].mean(), iteration=0)
-        task.get_logger().report_scalar(title='cross-validation average loss', series='test', value=cv_df["test_loss"].mean(), iteration=0)
+        task.get_logger().report_scalar(title='cross-validation average loss', series='validation', value=cv_df["val_auc"].mean(), iteration=0)
+        task.get_logger().report_scalar(title='cross-validation average loss', series='test', value=cv_df["test_auc"].mean(), iteration=0)
     
     else:
-        task.get_logger().report_vector(title='Losses', series='Losses', values=cv_df[["val_loss", "test_loss"]].values, xlabels=["Validation", "Test"], yaxis='Loss')
+        task.get_logger().report_vector(title='Losses', series='Losses', values=cv_df[["val_auc", "test_auc"]].values, xlabels=["Validation", "Test"], yaxis='Loss')
         task.get_logger().report_table(title="Metrics", series="Metrics", iteration=0, table_plot=cv_df.drop(columns="fold"))
         
-        task.get_logger().report_scalar(title='loss', series='validation', value=cv_df["val_loss"], iteration=0)
-        task.get_logger().report_scalar(title='loss', series='test', value=cv_df["test_loss"], iteration=0)
+        task.get_logger().report_scalar(title='loss', series='validation', value=cv_df["val_auc"], iteration=0)
+        task.get_logger().report_scalar(title='loss', series='test', value=cv_df["test_auc"], iteration=0)
     
 
 if __name__ == "__main__":

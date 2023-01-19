@@ -136,6 +136,13 @@ class LitAutoEncoder(pl.LightningModule):
 class LitEncoderOnly(LitAutoEncoder):
     def forward(self, x):
         return self.encode(x)
+    
+    def predict_step(self, batch, batch_idx: int, dataloader_idx: int = 0):
+        x, y = batch
+
+        x_hat = self(x)
+
+        return x_hat, y
 
 
 class ShallowNN(torch.nn.Module):
