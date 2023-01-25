@@ -1,8 +1,0 @@
-task_name: "training base task"
-
-optimization:
-  trials: 15
-  time_limit: 600
-
-machine:
-  gpu_index: 1

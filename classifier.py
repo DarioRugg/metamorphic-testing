@@ -19,7 +19,7 @@ from scripts.utils import adjust_paths, connect_confiuration, calculate_layers_d
 
 @hydra.main(version_base=None, config_path="conf", config_name="clf_config")
 def main(cfg : DictConfig) -> None:
-    task: Task = Task.init(project_name='e-muse/PartialTraining', task_name=cfg.task_name,
+    task: Task = Task.init(project_name='e-muse/metamorphic-testing', task_name=cfg.task_name,
                      auto_connect_frameworks={"pytorch": False})
 
     task.set_base_docker(

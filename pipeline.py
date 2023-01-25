@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 @hydra.main(version_base=None, config_path="conf", config_name="pipeline_config")
 def main(cfg : DictConfig) -> None:
     
-    task = Task.init(project_name='e-muse/PartialTraining',
+    task = Task.init(project_name='e-muse/metamorphic-testing',
                      task_name='twin pipeline',
                      task_type=Task.TaskTypes.controller)
     
@@ -24,7 +24,7 @@ def main(cfg : DictConfig) -> None:
     )
 
     pipe = PipelineController(name="Twin pipeline",
-        project="e-muse/PartialTraining",
+        project="e-muse/metamorphic-testing",
         version="0.0.3"
     )
 
@@ -33,7 +33,7 @@ def main(cfg : DictConfig) -> None:
     if not cfg.past_tasks.use or cfg.past_tasks.standard.ae == "":
         # standard training:
         pipe.add_step(name="auto-encoder standard training", 
-                    base_task_project="e-muse/PartialTraining", 
+                    base_task_project="e-muse/metamorphic-testing", 
                     base_task_name=cfg.ae_base_task_name, 
                     parameter_override={"hydra_config/bias":False,
                                         "hydra_config/bias_type":cfg.bias_type,
@@ -46,7 +46,7 @@ def main(cfg : DictConfig) -> None:
 
     if not cfg.past_tasks.use or cfg.past_tasks.standard.clf == "":
         pipe.add_step(name="classifier standard training", 
-                    base_task_project="e-muse/PartialTraining", 
+                    base_task_project="e-muse/metamorphic-testing", 
                     base_task_name=cfg.clf_base_task_name, 
                     parameter_override={"hydra_config/cross_validation/flag":False,
                                         "hydra_config/dataset/name": cfg.dataset.name,
@@ -60,7 +60,7 @@ def main(cfg : DictConfig) -> None:
     if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "":
         # biased training
         pipe.add_step(name="auto-encoder biased training", 
-                    base_task_project="e-muse/PartialTraining", 
+                    base_task_project="e-muse/metamorphic-testing", 
                     base_task_name=cfg.ae_base_task_name, 
                     parameter_override={"hydra_config/bias":True,
                                         "hydra_config/bias_type":cfg.bias_type,
@@ -73,7 +73,7 @@ def main(cfg : DictConfig) -> None:
     
     if not cfg.past_tasks.use or cfg.past_tasks.biased.clf == "":
         pipe.add_step(name="classifier biased training", 
-                    base_task_project="e-muse/PartialTraining", 
+                    base_task_project="e-muse/metamorphic-testing", 
                     base_task_name=cfg.clf_base_task_name, 
                     parameter_override={"hydra_config/cross_validation/flag":False,
                                         "hydra_config/dataset/name": cfg.dataset.name,
@@ -86,7 +86,7 @@ def main(cfg : DictConfig) -> None:
     
     # results aggregation
     pipe.add_step(name="experiments aggregator", 
-                base_task_project="e-muse/PartialTraining", 
+                base_task_project="e-muse/metamorphic-testing", 
                 base_task_name=cfg.aggregator_task_name,
                 parameter_override={"hydra_config/dataset": cfg.dataset.name, 
                                     "hydra_config/standard_task_id/ae": "${auto-encoder standard training.id}" if not cfg.past_tasks.use or cfg.past_tasks.standard.ae == "" else cfg.past_tasks.standard.ae,
