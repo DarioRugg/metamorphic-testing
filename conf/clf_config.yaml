@@ -1,7 +1,7 @@
 defaults:
   - model: clf/mlp
   - dataset: ibd
-  - test: met_test/fetures_addition
+  - test: ../met_test/features_addition
   - machine: gpu
   - _self_
   - shared_config

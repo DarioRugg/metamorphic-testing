@@ -183,7 +183,7 @@ class LitClassifier(pl.LightningModule):
 
         self.model_cfg = model_cfg
 
-        self.auto_encoder = LitAutoEncoder(ae_cfg, input_shape=input_shape, distortion=False).load_from_checkpoint(ae_checkpoint_path)
+        self.auto_encoder = LitAutoEncoder(ae_cfg, input_shape=input_shape).load_from_checkpoint(ae_checkpoint_path)
         self.auto_encoder.freeze()
         
         if self.model_cfg.name == "shallow":

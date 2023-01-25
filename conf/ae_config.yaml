@@ -1,7 +1,7 @@
 defaults:
   - model: ae/ae
   - dataset: ibd
-  - test: features_addition
+  - test: ../met_test/features_addition
   - machine: gpu
   - _self_
   - shared_config

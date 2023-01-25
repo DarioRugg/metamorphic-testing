@@ -1,7 +1,7 @@
 defaults:
   - model: clf/svm
   - dataset: ibd
-  - test: met_test/fetures_addition
+  - test: ../met_test/features_addition
   - machine: cpu
   - _self_
   - shared_config

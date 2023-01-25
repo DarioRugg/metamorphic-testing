@@ -80,6 +80,7 @@ def main(cfg : DictConfig) -> None:
 
     # activate test tests:
     dataset.change_test_stage("test")
+    
 
     # reporting auto-encoder results:
     test_x_hat = torch.cat(trainer.predict(lightning_model, datamodule=dataset), dim=0)
@@ -104,7 +105,7 @@ def main(cfg : DictConfig) -> None:
 
 
     task.get_logger().report_vector(title='Losses', series='Losses', values=results_df[["val_loss", "test_loss"]].values, xlabels=["Validation", "Test"], yaxis='Loss')
-    task.get_logger().report_table(title="Metrics", series="Metrics", iteration=0, table_plot=results_df.drop(columns="fold"))
+    task.get_logger().report_table(title="Metrics", series="Metrics", iteration=0, table_plot=results_df)
     
     task.get_logger().report_scalar(title='loss', series='validation', value=results_df["val_loss"], iteration=0)
     task.get_logger().report_scalar(title='loss', series='test', value=results_df["test_loss"], iteration=0)
