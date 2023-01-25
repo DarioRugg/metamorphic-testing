@@ -1,5 +1,5 @@
 defaults:
-  - test: feture_addition
+  - test: ../met_test/features_addition
 
 task_name: 'pipeline aggregator'
 
@@ -13,11 +13,11 @@ execution_type: "draft"
 
 
 # standard_task_id:
-#   ae: "a507fe4976e74e8999beb88b3183cf6c"
-#   clf: "bc202c7b65c14f609061e1e110a1c341"
+#   ae: "524e8abc9a04470fa88b41e9a7708905"
+#   clf: "375688850d07434d80c024bfb5bf4b7e"
 # test_task_id:
-#   ae: "fe8c9e484efc431c89f8369bd227f88f"
-#   clf: "7acfa2a48da245dcbf035e02952136f7"
+#   ae: "c579ae60402e44dda527d067cc14fc34"
+#   clf: "e45efa46c9e249f58354af912b21027f"
 # execution_type: "local"
 
 dataset: ibd

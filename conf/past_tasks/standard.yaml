@@ -1,8 +1,8 @@
 use: True
 
 standard:
-  ae: "5b5f4d963cd64a8f89b04eee1d34d626"
-  clf: "bfefc1539fc040e7961568d8def50280"
+  ae: "524e8abc9a04470fa88b41e9a7708905"
+  clf: "375688850d07434d80c024bfb5bf4b7e"
 test:
   ae: ""
   clf: ""

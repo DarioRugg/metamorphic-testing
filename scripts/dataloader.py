@@ -43,7 +43,7 @@ class IBDDataModule(BaseDataModule):
         if not self.cfg.test.flag:
             self.morphtest_object = None
         elif self.cfg.test.name == "features addition":
-            self.morphtest_object = features_addition.MetamorphicTest(cfg.test.num_features)
+            self.morphtest_object = features_addition.MetamorphicTest(self.cfg.test)
         else:
             raise f"Test {self.cfg.test.name} to be implemented yet!"
 

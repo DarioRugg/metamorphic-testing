@@ -4,12 +4,15 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from sklearn.metrics import accuracy_score
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
 from sklearn.metrics import roc_curve
 
 from scripts.utils import connect_confiuration
+
+from metamorphic_tests import *
 
 
 def get_data(cfg: OmegaConf) -> list[pd.DataFrame, pd.DataFrame]:
@@ -114,6 +117,19 @@ def main(cfg : DictConfig) -> None:
     plt.ylabel(f'Auto-Encoder MSE')
     task.get_logger().report_matplotlib_figure(title="Classifier - scatterplot", series="", figure=plt.gcf(), report_interactive=False)
     plt.close()
+    
+    # test results auto-encoder:
+    ae_test_results = {"model": "Auto-Encoder", "score test": np.mean(ae_df["mse_test"]), "score standard": np.mean(ae_df["mse_standard"])}
+    ae_test_results["result"], ae_test_results["diference"] = features_addition.MetamorphicTest(cfg.test).test(np.mean(ae_df["mse_test"]), np.mean(ae_df["mse_standard"]))
+
+    # test results classifier:
+    clf_test_results = {"model": "Classifier", "score test": accuracy_score(clf_df["label"], clf_df["predictions_standard"]), "score standard": accuracy_score(clf_df["label"], clf_df["predictions_test"])}
+    clf_test_results["result"], clf_test_results["diference"] = features_addition.MetamorphicTest(cfg.test).test(accuracy_score(clf_df["label"], clf_df["predictions_standard"]), accuracy_score(clf_df["label"], clf_df["predictions_test"]))
+
+    test_results_df = pd.DataFrame.from_records([ae_test_results, clf_test_results])
+    
+    task.get_logger().report_vector(title='Scores comparison', series='Losses', values=test_results_df[["score test", "score standard"]].values.transpose(), labels=["standard", "test"], xlabels=test_results_df["model"], xaxis="Models", yaxis='Score')
+    task.get_logger().report_table(title="Test results", series="", iteration=0, table_plot=test_results_df)
 
 
 if __name__ == '__main__':

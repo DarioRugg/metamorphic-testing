@@ -3,7 +3,7 @@ defaults:
   - dataset: ibd
   - past_tasks: none
   - test: ../met_test/features_addition
-  - no_test: test/none
+  - no_test: ../met_test/none
 
 ae_base_task_name: "base ae task"
 clf_base_task_name: "base clf task"
@@ -19,4 +19,4 @@ past_tasks:
     clf: ""
 
 machine:
-  gpus_index: [2, 2]
+  gpus_index: [1, 2]

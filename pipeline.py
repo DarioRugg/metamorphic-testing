@@ -16,11 +16,8 @@ def main(cfg : DictConfig) -> None:
         docker_image='rugg/metamorphic:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=1 \
                           --env CLEARML_AGENT_SKIP_PYTHON_ENV_INSTALL=1 \
-                          --env CLEARML_AGENT_GIT_USER=ruggeri\
-                          --env CLEARML_AGENT_GIT_PASS={access_token}\
                           --mount type=bind,source=/srv/nfs-data/ruggeri/datasets/IBD/,target=/data/ \
-                          --mount type=bind,source=/srv/nfs-data/ruggeri/access_tokens/,target=/tokens/ \
-                          --rm --ipc=host'.format(access_token=open("/tokens/gitlab_access_token.txt", "r").read())
+                          --rm --ipc=host'
     )
 
     pipe = PipelineController(name="Twin pipeline",
