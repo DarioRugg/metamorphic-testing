@@ -1,4 +1,3 @@
-# DeepMS
-Deep neural networks for Mass Spectrometry data
+# Metamorphic Testing
+Metamorphic tests on auto-encoders and classifiers on tabular data
 
-With AEs
