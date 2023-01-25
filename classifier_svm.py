@@ -27,7 +27,7 @@ def main(cfg : DictConfig) -> None:
                      auto_connect_frameworks={"pytorch": False})
 
     task.set_base_docker(
-        docker_image='rugg/aebias:latest',
+        docker_image='rugg/metamorphic:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=1 \
                           --env CLEARML_AGENT_SKIP_PYTHON_ENV_INSTALL=1 \
                           --env CLEARML_AGENT_GIT_USER=ruggeri\
@@ -41,8 +41,8 @@ def main(cfg : DictConfig) -> None:
 
     if cfg.machine.execution_type == "draft":
         task.execute_remotely()
-    elif cfg.machine.execution_type == "remote" and cfg.machine.accelerator == "gpu":
-        task.execute_remotely(queue_name=f"rgai-gpu-01-2080ti:{cfg.machine.gpu_index}")
+    elif cfg.machine.execution_type == "remote" and cfg.machine.accelerator == "cpu":
+        task.execute_remotely(queue_name=f"rgai-gpu-01-cpu:1")
 
     if cfg.fast_dev_run: dev_test_param_overwrite(cfg=cfg)
 

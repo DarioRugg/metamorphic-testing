@@ -4,10 +4,6 @@ fast_dev_run: false
 dataset:
   oversample: false
 
-cross_validation:
-  flag: false
-  folds: 10
-
 machine:
   execution_type: "draft"
   # draft remote local

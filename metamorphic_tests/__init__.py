@@ -1,0 +1,5 @@
+import metamorphic_tests.features_addition as features_addition
+import metamorphic_tests.features_removal as features_removal
+import metamorphic_tests.permutation as permutation
+import metamorphic_tests.rescaling as rescaling
+import metamorphic_tests.shifting as shifting

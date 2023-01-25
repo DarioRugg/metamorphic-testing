@@ -2,10 +2,11 @@ from typing import Iterator
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
-from scripts.dataset import IBDDataset, IBDDatasetBiased
+from scripts.dataset import IBDDataset
 from torch.utils.data import DataLoader
 from omegaconf import DictConfig
 from sklearn.model_selection import train_test_split, StratifiedKFold
+from metamorphic_tests import *
 
 
 
@@ -35,11 +36,17 @@ class BaseDataModule(pl.LightningDataModule):
         return self.test_dataloader()
         
 
-class IBDDataModule(BaseDataModule):
-    def __init__(self, cfg: DictConfig, k=None, exclusion: bool=False):
+class IBDDataModule(BaseDataModule): 
+    def __init__(self, cfg: DictConfig):
         super().__init__(cfg)
-        self.exclusion = exclusion
-    
+
+        if not self.cfg.test.flag:
+            self.morphtest_object = None
+        elif self.cfg.test.name == "features addition":
+            self.morphtest_object = features_addition.MetamorphicTest(cfg.test.num_features)
+        else:
+            raise f"Test {self.cfg.test.name} to be implemented yet!"
+
     def setup(self, stage=None):
 
         # read file
@@ -51,26 +58,23 @@ class IBDDataModule(BaseDataModule):
         # get class labels
         labels = raw_dataset.loc['disease'] #'disease'
 
-        
-
         if self.cfg.dataset.name == "ibd":
             labels = labels.replace({'n': 0, 'ibd_ulcerative_colitis': 1, 'ibd_crohn_disease': 1})
         elif self.cfg.dataset.name == "wt2d":
             labels = labels.replace({'n': 0, 't2d': 1})
         elif self.cfg.dataset.name == "cirrhosis":
             labels = labels.replace({'n': 0, 'cirrhosis': 1})
-
+        
+        if not self.cfg.test.flag:
+            # mutate the data according to the test
+            data = self.morphtest_object.mutation(data)
+            
         # train and test split
         train_data, val_data, test_data, \
         train_labels, val_labels, test_labels = self.split(data, labels)
 
-        if self.exclusion:
-            self.train = IBDDatasetBiased(train_data ,train_labels, oversample=self.cfg.dataset.oversample)
-            self.val = IBDDatasetBiased(val_data ,val_labels, oversample=self.cfg.dataset.oversample)
-        else:
-            self.train = IBDDataset(train_data ,train_labels, oversample=self.cfg.dataset.oversample)
-            self.val = IBDDataset(val_data ,val_labels, oversample=self.cfg.dataset.oversample)
-            
+        self.train = IBDDataset(train_data ,train_labels, oversample=self.cfg.dataset.oversample)
+        self.val = IBDDataset(val_data ,val_labels, oversample=self.cfg.dataset.oversample)
         self.test = IBDDataset(test_data, test_labels, oversample=False)
 
     def split(self, data, labels) -> Iterator[np.array]:
@@ -87,20 +91,6 @@ class IBDDataModule(BaseDataModule):
         data = raw_dataset.loc[raw_dataset.index.str.contains("gi|", regex=False)].T.apply(pd.to_numeric)
 
         return data.shape[1]
-
-
-class KFoldIBDDataModule(IBDDataModule):
-    def __init__(self, cfg: DictConfig, k=None, exclusion: bool=False):
-        super().__init__(cfg, exclusion=exclusion)
-        self.kfold = StratifiedKFold(n_splits=self.cfg.cross_validation.folds, shuffle=True, random_state=self.cfg.seed)
-        self.k = k
-
-    def split(self, data, labels):
-        train_val_idx, test_idx = list(self.kfold.split(data, labels))[self.k]
-
-        train_val_data, test_data = data[train_val_idx], data[test_idx]
-        train_val_labels, test_labels = labels[train_val_idx], labels[test_idx]
-        train_data, val_data, train_labels, val_labels= train_test_split(train_val_data, train_val_labels, test_size=0.2, random_state=self.cfg.seed, stratify=train_val_labels)
-        
-        return train_data, val_data, test_data, train_labels, val_labels, test_labels
-            
+    
+    def change_test_stage(self, new_stage: str):
+        self.morphtest_object.update_current_stage(current_stage=new_stage)

@@ -1,6 +1,7 @@
 defaults:
   - model: ae/ae
   - dataset: ibd
+  - test: fetures_addition
   - machine: gpu
   - _self_
   - shared_config
@@ -12,14 +13,6 @@ fast_dev_run: false
 
 dataset:
   oversample: false
-
-bias: true
-bias_type: "exclusion"
-# exclusion distortion
-
-cross_validation:
-  flag: false
-  folds: 10
 
 machine:
   workers: 8

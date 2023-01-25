@@ -13,7 +13,7 @@ def main(cfg : DictConfig) -> None:
                      task_type=Task.TaskTypes.controller)
     
     task.set_base_docker(
-        docker_image='rugg/aebias:latest',
+        docker_image='rugg/metamorphic:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=1 \
                           --env CLEARML_AGENT_SKIP_PYTHON_ENV_INSTALL=1 \
                           --env CLEARML_AGENT_GIT_USER=ruggeri\
@@ -35,9 +35,10 @@ def main(cfg : DictConfig) -> None:
         pipe.add_step(name="auto-encoder standard training", 
                     base_task_project="e-muse/metamorphic-testing", 
                     base_task_name=cfg.ae_base_task_name, 
-                    parameter_override={"hydra_config/bias":False,
-                                        "hydra_config/bias_type":cfg.bias_type,
-                                        "hydra_config/cross_validation/flag":False,
+                    parameter_override={"hydra_config/test.flag":cfg.no_test.flag,
+                                        "hydra_config/test.name":cfg.no_test.name,
+                                        "hydra_config/test.stage":cfg.no_test.stage,
+                                        "hydra_config/test.round_sensitivity":cfg.no_test.round_sensitivity,
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size},
@@ -48,7 +49,10 @@ def main(cfg : DictConfig) -> None:
         pipe.add_step(name="classifier standard training", 
                     base_task_project="e-muse/metamorphic-testing", 
                     base_task_name=cfg.clf_base_task_name, 
-                    parameter_override={"hydra_config/cross_validation/flag":False,
+                    parameter_override={"hydra_config/test.flag":cfg.no_test.flag,
+                                        "hydra_config/test.name":cfg.no_test.name,
+                                        "hydra_config/test.stage":cfg.no_test.stage,
+                                        "hydra_config/test.round_sensitivity":cfg.no_test.round_sensitivity,
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size,
@@ -57,32 +61,36 @@ def main(cfg : DictConfig) -> None:
                     execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[0]}')
         parents_to_wait.append("classifier standard training")
 
-    if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "":
-        # biased training
-        pipe.add_step(name="auto-encoder biased training", 
+    if not cfg.past_tasks.use or cfg.past_tasks.test.ae == "":
+        # test training
+        pipe.add_step(name="auto-encoder test training", 
                     base_task_project="e-muse/metamorphic-testing", 
                     base_task_name=cfg.ae_base_task_name, 
-                    parameter_override={"hydra_config/bias":True,
-                                        "hydra_config/bias_type":cfg.bias_type,
-                                        "hydra_config/cross_validation/flag":False,
+                    parameter_override={"hydra_config/test.flag":cfg.test.flag,
+                                        "hydra_config/test.name":cfg.test.name,
+                                        "hydra_config/test.stage":cfg.test.stage,
+                                        "hydra_config/test.round_sensitivity":cfg.test.round_sensitivity,
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size},
                     execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[1]}')
-        parents_to_wait.append("auto-encoder biased training")
+        parents_to_wait.append("auto-encoder test training")
     
-    if not cfg.past_tasks.use or cfg.past_tasks.biased.clf == "":
-        pipe.add_step(name="classifier biased training", 
+    if not cfg.past_tasks.use or cfg.past_tasks.test.clf == "":
+        pipe.add_step(name="classifier test training", 
                     base_task_project="e-muse/metamorphic-testing", 
                     base_task_name=cfg.clf_base_task_name, 
-                    parameter_override={"hydra_config/cross_validation/flag":False,
+                    parameter_override={"hydra_config/test.flag":cfg.test.flag,
+                                        "hydra_config/test.name":cfg.test.name,
+                                        "hydra_config/test.stage":cfg.test.stage,
+                                        "hydra_config/test.round_sensitivity":cfg.test.round_sensitivity,
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size,
-                                        "hydra_config/ae_task_id": "${auto-encoder biased training.id}" if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "" else cfg.past_tasks.biased.ae},
-                    parents=["auto-encoder biased training"] if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "" else None,
+                                        "hydra_config/ae_task_id": "${auto-encoder test training.id}" if not cfg.past_tasks.use or cfg.past_tasks.test.ae == "" else cfg.past_tasks.test.ae},
+                    parents=["auto-encoder test training"] if not cfg.past_tasks.use or cfg.past_tasks.test.ae == "" else None,
                     execution_queue=f'rgai-gpu-01-2080ti:{cfg.machine.gpus_index[1]}')
-        parents_to_wait.append("classifier biased training")
+        parents_to_wait.append("classifier test training")
     
     # results aggregation
     pipe.add_step(name="experiments aggregator", 
@@ -91,8 +99,8 @@ def main(cfg : DictConfig) -> None:
                 parameter_override={"hydra_config/dataset": cfg.dataset.name, 
                                     "hydra_config/standard_task_id/ae": "${auto-encoder standard training.id}" if not cfg.past_tasks.use or cfg.past_tasks.standard.ae == "" else cfg.past_tasks.standard.ae,
                                     "hydra_config/standard_task_id/clf": "${classifier standard training.id}" if not cfg.past_tasks.use or cfg.past_tasks.standard.clf == "" else cfg.past_tasks.standard.clf,
-                                    "hydra_config/biased_task_id/ae": "${auto-encoder biased training.id}" if not cfg.past_tasks.use or cfg.past_tasks.biased.ae == "" else cfg.past_tasks.biased.ae,
-                                    "hydra_config/biased_task_id/clf": "${classifier biased training.id}" if not cfg.past_tasks.use or cfg.past_tasks.biased.clf == "" else cfg.past_tasks.biased.clf},
+                                    "hydra_config/test_task_id/ae": "${auto-encoder test training.id}" if not cfg.past_tasks.use or cfg.past_tasks.test.ae == "" else cfg.past_tasks.test.ae,
+                                    "hydra_config/test_task_id/clf": "${classifier test training.id}" if not cfg.past_tasks.use or cfg.past_tasks.test.clf == "" else cfg.past_tasks.test.clf},
                 parents=parents_to_wait,
                 execution_queue="rgai-gpu-01-cpu:1")
 

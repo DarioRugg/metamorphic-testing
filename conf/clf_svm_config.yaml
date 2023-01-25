@@ -1,7 +1,8 @@
 defaults:
   - model: clf/svm
   - dataset: ibd
-  - machine: gpu
+  - test: met_test/fetures_addition
+  - machine: cpu
   - _self_
   - shared_config
 
@@ -14,10 +15,6 @@ fast_dev_run: false
 
 dataset:
   oversample: false
-
-cross_validation:
-  flag: false
-  folds: 10
 
 machine:
   workers: 8

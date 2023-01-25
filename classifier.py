@@ -23,7 +23,7 @@ def main(cfg : DictConfig) -> None:
                      auto_connect_frameworks={"pytorch": False})
 
     task.set_base_docker(
-        docker_image='rugg/aebias:latest',
+        docker_image='rugg/metamorphic:latest',
         docker_arguments='--env CLEARML_AGENT_SKIP_PIP_VENV_INSTALL=1 \
                           --env CLEARML_AGENT_SKIP_PYTHON_ENV_INSTALL=1 \
                           --env CLEARML_AGENT_GIT_USER=ruggeri\

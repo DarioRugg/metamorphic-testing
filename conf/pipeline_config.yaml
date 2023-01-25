@@ -2,20 +2,19 @@ defaults:
   - _self_
   - dataset: ibd
   - past_tasks: none
+  - test: met_test/fetures_addition
+  - no_test: test/none
 
 ae_base_task_name: "base ae task"
 clf_base_task_name: "base clf task"
 aggregator_task_name: "pipeline aggregator"
-
-bias_type: "distortion"
-# exclusion distortion
 
 past_tasks: 
   use: False
   standard:
     ae: ""
     clf: ""
-  biased:
+  test:
     ae: ""
     clf: ""
 

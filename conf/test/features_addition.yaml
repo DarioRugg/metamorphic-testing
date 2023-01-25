@@ -1,0 +1,7 @@
+name: "features addition"
+flag: true
+stage: both
+# both
+
+num_features: 100
+round_sensitivity: 4

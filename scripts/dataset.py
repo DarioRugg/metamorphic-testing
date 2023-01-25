@@ -33,13 +33,3 @@ class IBDDataset(Dataset):
         labels = pd.concat([labels, additional_labels], ignore_index=True)
 
         return data, labels
-
-
-class IBDDatasetBiased(IBDDataset):
-
-    def __init__(self, data: pd.DataFrame, labels: pd.Series, oversample: bool) -> None:
-        
-        data = data[labels == 0]
-        labels = labels[labels == 0]
-
-        super().__init__(data, labels, False)

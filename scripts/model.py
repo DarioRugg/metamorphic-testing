@@ -57,13 +57,12 @@ class SimpleAutoEncoder(torch.nn.Module):
 
 
 class LitAutoEncoder(pl.LightningModule):
-    def __init__(self, model_cfg: DictConfig, input_shape: int, distortion: bool = False):
+    def __init__(self, model_cfg: DictConfig, input_shape: int):
         super().__init__()
 
         self.save_hyperparameters()
 
         self.model_cfg = model_cfg
-        self.distortion = distortion
 
         self.auto_encoder = SimpleAutoEncoder(self.model_cfg, input_shape=input_shape)
         self.lr = self.model_cfg.learning_rate
@@ -94,12 +93,7 @@ class LitAutoEncoder(pl.LightningModule):
 
         x_hat = self(x)
 
-        if self.distortion:
-            x_distort = torch.clone(x)
-            x_distort[y==1] = torch.ones_like(x_distort[y==1]) - x_distort[y==1]
-            loss = self.metric(x_hat, x_distort)
-        else:
-            loss = self.metric(x_hat, x)
+        loss = self.metric(x_hat, x)
         
         self.log("train_loss", loss)
 
