@@ -2,12 +2,10 @@ defaults:
   - optional_arguments
   - _self_
 
-name: "features addition"
+name: "shifting"
 flag: true
 stage: both
 # both
-
-num_features: 100
 
 ae_round_sensitivity: 6
 cls_round_sensitivity: 4

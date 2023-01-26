@@ -2,12 +2,13 @@ defaults:
   - optional_arguments
   - _self_
 
-name: "features addition"
+name: "noise"
 flag: true
 stage: both
-# both
+# both test
 
-num_features: 100
+mu: .0
+std: .3
 
 ae_round_sensitivity: 6
 cls_round_sensitivity: 4
