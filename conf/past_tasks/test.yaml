@@ -1,8 +1,0 @@
-use: True
-
-standard:
-  ae: ""
-  clf: ""
-test:
-  ae: "5b5f4d963cd64a8f89b04eee1d34d626"
-  clf: "bfefc1539fc040e7961568d8def50280"

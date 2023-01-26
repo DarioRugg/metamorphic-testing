@@ -1,22 +1,13 @@
 defaults:
   - _self_
   - dataset: ibd
-  - past_tasks: none
+  - past_tasks: pipeline_none
   - test: ../met_test/features_removal
   - no_test: ../met_test/none
 
 ae_base_task_name: "base ae task"
 clf_base_task_name: "base clf task"
 aggregator_task_name: "pipeline aggregator"
-
-past_tasks: 
-  use: False
-  standard:
-    ae: ""
-    clf: ""
-  test:
-    ae: ""
-    clf: ""
 
 machine:
   gpus_index: [1, 2]

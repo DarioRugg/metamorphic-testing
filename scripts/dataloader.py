@@ -44,6 +44,8 @@ class IBDDataModule(BaseDataModule):
             self.morphtest_object = None
         elif self.cfg.test.name == "features addition":
             self.morphtest_object = features_addition.MetamorphicTest(self.cfg.test)
+        elif self.cfg.test.name == "features removal":
+            self.morphtest_object = features_removal.MetamorphicTest(self.cfg.test)
         else:
             raise f"Test {self.cfg.test.name} to be implemented yet!"
 
@@ -65,7 +67,7 @@ class IBDDataModule(BaseDataModule):
         elif self.cfg.dataset.name == "cirrhosis":
             labels = labels.replace({'n': 0, 'cirrhosis': 1})
         
-        if not self.cfg.test.flag:
+        if self.cfg.test.flag:
             # mutate the data according to the test
             data = self.morphtest_object.mutation(data)
             

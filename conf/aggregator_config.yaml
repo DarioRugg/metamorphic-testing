@@ -1,23 +1,21 @@
 defaults:
+  - _self_
   - test: ../met_test/features_addition
+  - standard_task_id: ../past_tasks/tasks/standard
+  - test_task_id: ../past_tasks/tasks/features_addition
 
 task_name: 'pipeline aggregator'
 
-standard_task_id:
-  ae: ""
-  clf: ""
-test_task_id:
-  ae: ""
-  clf: ""
 execution_type: "draft"
 
 
 # standard_task_id:
-#   ae: "524e8abc9a04470fa88b41e9a7708905"
-#   clf: "375688850d07434d80c024bfb5bf4b7e"
+#   ae: 01c83ec033504b45b5464f3eeccfe4fc
+#   clf: 2c67b88abdf4403996243083ca9583cb
 # test_task_id:
-#   ae: "c579ae60402e44dda527d067cc14fc34"
-#   clf: "e45efa46c9e249f58354af912b21027f"
+#   ae: 17722dff87794e04ab5ba86a516d43cb
+#   clf: 95a499fbb1494bb48372bb0d1b992eec
+
 # execution_type: "local"
 
 dataset: ibd

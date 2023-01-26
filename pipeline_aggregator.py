@@ -120,11 +120,11 @@ def main(cfg : DictConfig) -> None:
     
     # test results auto-encoder:
     ae_test_results = {"model": "Auto-Encoder", "score test": np.mean(ae_df["mse_test"]), "score standard": np.mean(ae_df["mse_standard"])}
-    ae_test_results["result"], ae_test_results["diference"] = features_addition.MetamorphicTest(cfg.test).test(np.mean(ae_df["mse_test"]), np.mean(ae_df["mse_standard"]), model_arch="ae")
+    ae_test_results["result"], ae_test_results["distance from threshold"] = features_addition.MetamorphicTest(cfg.test).test(ae_test_results["score test"], ae_test_results["score standard"], model_arch="ae")
 
     # test results classifier:
     clf_test_results = {"model": "Classifier", "score test": accuracy_score(clf_df["label"], clf_df["predictions_standard"]), "score standard": accuracy_score(clf_df["label"], clf_df["predictions_test"])}
-    clf_test_results["result"], clf_test_results["diference"] = features_addition.MetamorphicTest(cfg.test).test(accuracy_score(clf_df["label"], clf_df["predictions_standard"]), accuracy_score(clf_df["label"], clf_df["predictions_test"]), model_arch="clf")
+    clf_test_results["result"], clf_test_results["distance from threshold"] = features_addition.MetamorphicTest(cfg.test).test(clf_test_results["score test"], clf_test_results["score standard"], model_arch="clf")
 
     test_results_df = pd.DataFrame.from_records([ae_test_results, clf_test_results])
     

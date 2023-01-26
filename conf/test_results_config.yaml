@@ -1,3 +1,14 @@
+defaults:
+  - tasks.standard.test: ../met_test/none
+  - tasks.features_addition.test: ../met_test/features_addition
+  - tasks.features_removal.test: ../met_test/features_removal
+  - tasks.noise.test: ../met_test/noise
+  - tasks.permutation.test: ../met_test/permutation
+  - tasks.permutation_on_evaluation.test: ../met_test/permutation
+  - tasks.shifting.test: ../met_test/shifting
+  - tasks.shifting_on_evaluation.test: ../met_test/shifting
+
+
 task_name: 'tests results'
 
 execution_type: "local"
@@ -7,32 +18,24 @@ tasks:
   standard:
     ae: "524e8abc9a04470fa88b41e9a7708905"
     clf: "375688850d07434d80c024bfb5bf4b7e"
-    test: met_test/none
   features_addition:
     ae: ""
     clf: ""
-    test: met_test/features_addition
   features_removal:
     ae: ""
     clf: ""
-    test: met_test/features_removal
   noise:
     ae: ""
     clf: ""
-    test: met_test/noise
   permutation:
     ae: ""
     clf: ""
-    test: met_test/permutation
   permutation_on_evaluation:
     ae: ""
     clf: ""
-    test: met_test/permutation
   shifting:
     ae: ""
     clf: ""
-    test: met_test/shifting
   shifting_on_evaluation:
     ae: ""
     clf: ""
-    test: met_test/shifting

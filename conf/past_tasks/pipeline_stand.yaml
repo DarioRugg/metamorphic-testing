@@ -1,0 +1,5 @@
+defaults:
+  - standard: ../tasks/features_removal
+  - test: ../tasks/none
+
+use: False

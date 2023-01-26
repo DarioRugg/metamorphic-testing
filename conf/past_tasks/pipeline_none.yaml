@@ -1,0 +1,5 @@
+defaults:
+  - standard: ../tasks/none
+  - test: ../tasks/none
+
+use: False
