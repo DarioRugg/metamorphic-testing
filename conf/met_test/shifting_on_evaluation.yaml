@@ -1,0 +1,9 @@
+defaults:
+  - param: ../../met_test/optional_arguments
+  - threshold: ../../met_test/threshold/standard
+  - _self_
+
+name: "shifting"
+flag: true
+stage: test
+# both test

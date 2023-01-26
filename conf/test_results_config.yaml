@@ -1,41 +1,23 @@
 defaults:
+  - tasks.standard: ../past_tasks/tasks/none
   - tasks.standard.test: ../met_test/none
+  - tasks.features_addition: ../past_tasks/tasks/features_addition
   - tasks.features_addition.test: ../met_test/features_addition
+  - tasks.features_removal: ../past_tasks/tasks/features_removal
   - tasks.features_removal.test: ../met_test/features_removal
+  - tasks.noise: ../past_tasks/tasks/noise
   - tasks.noise.test: ../met_test/noise
+  - tasks.permutation: ../past_tasks/tasks/permutation
   - tasks.permutation.test: ../met_test/permutation
-  - tasks.permutation_on_evaluation.test: ../met_test/permutation
+  - tasks.permutation_on_evaluation: ../past_tasks/tasks/permutation_on_evaluation
+  - tasks.permutation_on_evaluation.test: ../met_test/permutation_on_evaluation
+  - tasks.shifting: ../past_tasks/tasks/shifting
   - tasks.shifting.test: ../met_test/shifting
-  - tasks.shifting_on_evaluation.test: ../met_test/shifting
+  - tasks.shifting_on_evaluation: ../past_tasks/tasks/shifting_on_evaluation
+  - tasks.shifting_on_evaluation.test: ../met_test/shifting_on_evaluation
 
 
 task_name: 'tests results'
 
 execution_type: "local"
 # local remote draft
-
-tasks:
-  standard:
-    ae: "524e8abc9a04470fa88b41e9a7708905"
-    clf: "375688850d07434d80c024bfb5bf4b7e"
-  features_addition:
-    ae: ""
-    clf: ""
-  features_removal:
-    ae: ""
-    clf: ""
-  noise:
-    ae: ""
-    clf: ""
-  permutation:
-    ae: ""
-    clf: ""
-  permutation_on_evaluation:
-    ae: ""
-    clf: ""
-  shifting:
-    ae: ""
-    clf: ""
-  shifting_on_evaluation:
-    ae: ""
-    clf: ""
