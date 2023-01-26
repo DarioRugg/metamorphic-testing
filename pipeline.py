@@ -9,7 +9,7 @@ from omegaconf import DictConfig, OmegaConf
 def main(cfg : DictConfig) -> None:
     
     task = Task.init(project_name='e-muse/metamorphic-testing',
-                     task_name='twin pipeline',
+                     task_name=f'pipeline {cfg.test.name} test',
                      task_type=Task.TaskTypes.controller)
     
     task.set_base_docker(

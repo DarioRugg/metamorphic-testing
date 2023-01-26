@@ -95,4 +95,5 @@ class IBDDataModule(BaseDataModule):
         return data.shape[1]
     
     def change_test_stage(self, new_stage: str):
-        self.morphtest_object.update_current_stage(current_stage=new_stage)
+        if not self.cfg.test.flag:
+            self.morphtest_object.update_current_stage(current_stage=new_stage)
