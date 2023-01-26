@@ -3,5 +3,9 @@ flag: true
 stage: both
 # both
 
+seed: 1234
 num_features: 100
-round_sensitivity: 4
+
+
+ae_round_sensitivity: 4
+cls_round_sensitivity: 4
