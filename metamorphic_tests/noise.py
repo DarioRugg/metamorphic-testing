@@ -9,7 +9,9 @@ class MetamorphicTest(BaseTestClass):
 
     def _transformation(self, data: pd.DataFrame) -> pd.DataFrame:
         
-        new_data = data.loc[:, sorted(random.sample(range(data.shape[1]), k=data.shape[1]-self.cfg.num_features))]
+        white_noise = np.random.normal(loc=0, scale=0.1, size=data.shape)
+        
+        new_data = data + white_noise
 
         return new_data
     
