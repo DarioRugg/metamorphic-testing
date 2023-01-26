@@ -1,41 +1,38 @@
-defaults:
-  - test: ../met_test/features_addition
+task_name: 'tests results'
 
-task_name: 'pipeline aggregator'
+execution_type: "local"
+# local remote draft
 
-standard:
-  ae: "524e8abc9a04470fa88b41e9a7708905"
-  clf: "375688850d07434d80c024bfb5bf4b7e"
-  test: ../met_test/None
-features_addition:
-  ae: ""
-  clf: ""
-  test: ../met_test/features_addition
-features_removal:
-  ae: ""
-  clf: ""
-  test: ../met_test/features_removal
-noise:
-  ae: ""
-  clf: ""
-  test: ../met_test/noise
-permutation:
-  ae: ""
-  clf: ""
-  test: ../met_test/permutation
-permutation_on_evaluation:
-  ae: ""
-  clf: ""
-  test: ../met_test/permutation
-shifting:
-  ae: ""
-  clf: ""
-  test: ../met_test/shifting
-shifting_on_evaluation:
-  ae: ""
-  clf: ""
-  test: ../met_test/shifting
-
-execution_type: "draft"
-
-dataset: ibd
+tasks:
+  standard:
+    ae: "524e8abc9a04470fa88b41e9a7708905"
+    clf: "375688850d07434d80c024bfb5bf4b7e"
+    test: met_test/none
+  features_addition:
+    ae: ""
+    clf: ""
+    test: met_test/features_addition
+  features_removal:
+    ae: ""
+    clf: ""
+    test: met_test/features_removal
+  noise:
+    ae: ""
+    clf: ""
+    test: met_test/noise
+  permutation:
+    ae: ""
+    clf: ""
+    test: met_test/permutation
+  permutation_on_evaluation:
+    ae: ""
+    clf: ""
+    test: met_test/permutation
+  shifting:
+    ae: ""
+    clf: ""
+    test: met_test/shifting
+  shifting_on_evaluation:
+    ae: ""
+    clf: ""
+    test: met_test/shifting

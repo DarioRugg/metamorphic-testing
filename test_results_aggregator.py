@@ -60,16 +60,17 @@ def main(cfg : DictConfig) -> None:
     print(OmegaConf.to_yaml(cfg))
 
     ae_df, clf_df = get_data(cfg)
-    
+
     # test results auto-encoder:
     ae_test_results = {"model": "Auto-Encoder", "score test": np.mean(ae_df["mse_test"]), "score standard": np.mean(ae_df["mse_standard"])}
-    ae_test_results["result"], ae_test_results["diference"] = features_addition.MetamorphicTest(cfg.test).test(np.mean(ae_df["mse_test"]), np.mean(ae_df["mse_standard"]))
+    ae_test_results["result"], ae_test_results["diference"] = features_addition.MetamorphicTest(cfg.test).test(np.mean(ae_df["mse_test"]), np.mean(ae_df["mse_standard"]), model_arch="ae")
 
     # test results classifier:
     clf_test_results = {"model": "Classifier", "score test": accuracy_score(clf_df["label"], clf_df["predictions_standard"]), "score standard": accuracy_score(clf_df["label"], clf_df["predictions_test"])}
-    clf_test_results["result"], clf_test_results["diference"] = features_addition.MetamorphicTest(cfg.test).test(accuracy_score(clf_df["label"], clf_df["predictions_standard"]), accuracy_score(clf_df["label"], clf_df["predictions_test"]))
+    clf_test_results["result"], clf_test_results["diference"] = features_addition.MetamorphicTest(cfg.test).test(accuracy_score(clf_df["label"], clf_df["predictions_standard"]), accuracy_score(clf_df["label"], clf_df["predictions_test"]), model_arch="clf")
 
     test_results_df = pd.DataFrame.from_records([ae_test_results, clf_test_results])
+    
     
     task.get_logger().report_vector(title='Scores comparison', series='Losses', values=test_results_df[["score test", "score standard"]].values.transpose(), labels=["standard", "test"], xlabels=test_results_df["model"], xaxis="Models", yaxis='Score')
     task.get_logger().report_table(title="Test results", series="", iteration=0, table_plot=test_results_df)

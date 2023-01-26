@@ -1,11 +1,9 @@
 defaults:
-  - optional_arguments
+  - param: ../../met_test/optional_arguments
+  - threshold: ../../met_test/threshold/standard
   - _self_
 
 name: "shifting"
 flag: true
 stage: both
 # both
-
-ae_round_sensitivity: 6
-cls_round_sensitivity: 4

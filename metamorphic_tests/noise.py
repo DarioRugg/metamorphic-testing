@@ -9,11 +9,16 @@ class MetamorphicTest(BaseTestClass):
 
     def _transformation(self, data: pd.DataFrame) -> pd.DataFrame:
         
-        white_noise = np.random.normal(loc=self.cfg.mu, scale=self.cfg.std, size=data.shape)
+        white_noise = np.random.normal(loc=self.cfg.param.mu, scale=self.cfg.param.std, size=data.shape)
         
         new_data = data + white_noise
 
         return new_data
     
-    def _test_condition(self, result: float, reference: float, round_digits: str) -> list[bool, float]:
-        return np.round(result, round_digits) == np.round(reference, round_digits), np.abs(result - reference)
+    def test(self, result: float, reference: float, model_arch: str) -> list[bool, float]:
+        super().test(model_arch)
+        
+        if model_arch == "ae":
+            return self._equality_condition(result, reference, self.cfg.threshold.ae.equal)
+        else:
+            return self._equality_condition(result, reference, self.cfg.threshold.clf.different)

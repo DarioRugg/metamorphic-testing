@@ -13,5 +13,16 @@ class MetamorphicTest(BaseTestClass):
 
         return new_data
     
-    def _test_condition(self, result: float, reference: float, round_digits: str) -> list[bool, float]:
-        return np.round(result, round_digits) == np.round(reference, round_digits), np.abs(result - reference)
+    def test(self, result: float, reference: float, model_arch: str) -> list[bool, float]:
+        super().test(model_arch)
+        
+        if self.cfg.stage == "both":
+            if model_arch == "ae":
+                return self._equality_condition(result, reference, self.cfg.threshold.ae.equal)
+            else:
+                return self._equality_condition(result, reference, self.cfg.threshold.clf.equal)
+        elif "test":
+            if model_arch == "ae":
+                return self._difference_condition(result, reference, self.cfg.threshold.ae.different)
+            else:
+                return self._difference_condition(result, reference, self.cfg.threshold.clf.different)

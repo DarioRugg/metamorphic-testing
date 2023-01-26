@@ -2,7 +2,7 @@ defaults:
   - _self_
   - dataset: ibd
   - past_tasks: none
-  - test: ../met_test/features_addition
+  - test: ../met_test/features_removal
   - no_test: ../met_test/none
 
 ae_base_task_name: "base ae task"

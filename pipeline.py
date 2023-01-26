@@ -2,7 +2,7 @@ from clearml import Task
 from clearml.automation import PipelineController
 
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="pipeline_config")
@@ -20,6 +20,9 @@ def main(cfg : DictConfig) -> None:
                           --rm --ipc=host'
     )
 
+    
+    print(OmegaConf.to_yaml(cfg))
+
     pipe = PipelineController(name="Twin pipeline",
         project="e-muse/metamorphic-testing",
         version="0.0.3"
@@ -35,7 +38,13 @@ def main(cfg : DictConfig) -> None:
                     parameter_override={"hydra_config/test.flag":cfg.no_test.flag,
                                         "hydra_config/test.name":cfg.no_test.name,
                                         "hydra_config/test.stage":cfg.no_test.stage,
-                                        "hydra_config/test.round_sensitivity":cfg.no_test.round_sensitivity,
+                                        "hydra_config/test.param.num_features":cfg.no_test.param.num_features,
+                                        "hydra_config/test.param.mu":cfg.no_test.param.mu,
+                                        "hydra_config/test.param.std":cfg.no_test.param.std,
+                                        "hydra_config/test.threshold.ae.equal":cfg.no_test.threshold.ae.equal,
+                                        "hydra_config/test.threshold.ae.different":cfg.no_test.threshold.ae.different,
+                                        "hydra_config/test.threshold.clf.equal":cfg.no_test.threshold.clf.equal,
+                                        "hydra_config/test.threshold.clf.different":cfg.no_test.threshold.clf.different,
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size},
@@ -49,7 +58,13 @@ def main(cfg : DictConfig) -> None:
                     parameter_override={"hydra_config/test.flag":cfg.no_test.flag,
                                         "hydra_config/test.name":cfg.no_test.name,
                                         "hydra_config/test.stage":cfg.no_test.stage,
-                                        "hydra_config/test.round_sensitivity":cfg.no_test.round_sensitivity,
+                                        "hydra_config/test.param.num_features":cfg.no_test.param.num_features,
+                                        "hydra_config/test.param.mu":cfg.no_test.param.mu,
+                                        "hydra_config/test.param.std":cfg.no_test.param.std,
+                                        "hydra_config/test.threshold.ae.equal":cfg.no_test.threshold.ae.equal,
+                                        "hydra_config/test.threshold.ae.different":cfg.no_test.threshold.ae.different,
+                                        "hydra_config/test.threshold.clf.equal":cfg.no_test.threshold.clf.equal,
+                                        "hydra_config/test.threshold.clf.different":cfg.no_test.threshold.clf.different,
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size,
@@ -66,7 +81,13 @@ def main(cfg : DictConfig) -> None:
                     parameter_override={"hydra_config/test.flag":cfg.test.flag,
                                         "hydra_config/test.name":cfg.test.name,
                                         "hydra_config/test.stage":cfg.test.stage,
-                                        "hydra_config/test.round_sensitivity":cfg.test.round_sensitivity,
+                                        "hydra_config/test.param.num_features":cfg.test.param.num_features,
+                                        "hydra_config/test.param.mu":cfg.test.param.mu,
+                                        "hydra_config/test.param.std":cfg.test.param.std,
+                                        "hydra_config/test.threshold.ae.equal":cfg.test.threshold.ae.equal,
+                                        "hydra_config/test.threshold.ae.different":cfg.test.threshold.ae.different,
+                                        "hydra_config/test.threshold.clf.equal":cfg.test.threshold.clf.equal,
+                                        "hydra_config/test.threshold.clf.different":cfg.test.threshold.clf.different,
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size},
@@ -80,7 +101,13 @@ def main(cfg : DictConfig) -> None:
                     parameter_override={"hydra_config/test.flag":cfg.test.flag,
                                         "hydra_config/test.name":cfg.test.name,
                                         "hydra_config/test.stage":cfg.test.stage,
-                                        "hydra_config/test.round_sensitivity":cfg.test.round_sensitivity,
+                                        "hydra_config/test.param.num_features":cfg.test.param.num_features,
+                                        "hydra_config/test.param.mu":cfg.test.param.mu,
+                                        "hydra_config/test.param.std":cfg.test.param.std,
+                                        "hydra_config/test.threshold.ae.equal":cfg.test.threshold.ae.equal,
+                                        "hydra_config/test.threshold.ae.different":cfg.test.threshold.ae.different,
+                                        "hydra_config/test.threshold.clf.equal":cfg.test.threshold.clf.equal,
+                                        "hydra_config/test.threshold.clf.different":cfg.test.threshold.clf.different,
                                         "hydra_config/dataset/name": cfg.dataset.name,
                                         "hydra_config/dataset/data_path": cfg.dataset.data_path,
                                         "hydra_config/dataset/batch_size": cfg.dataset.batch_size,

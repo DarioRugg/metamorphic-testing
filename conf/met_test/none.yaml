@@ -1,6 +1,9 @@
-name: ""
+defaults:
+  - param: ../../met_test/optional_arguments
+  - threshold: ../../met_test/threshold/standard
+  - _self_
+
+name: "standard"
 flag: false
 stage: ""
 # train
-
-round_sensitivity: 0

@@ -1,3 +1,4 @@
+import numpy as np
 from omegaconf import DictConfig
 import pandas as pd
 
@@ -15,9 +16,17 @@ class BaseTestClass:
         else:
             return x_data
         
-    def test(self, result: float, reference: float, model_arch: str) -> list[bool, float]:
+    def _transformation(self, data: pd.DataFrame) -> None:
+        pass
+        
+    def test(self, model_arch: str) -> None:
         assert model_arch in ["ae", "clf"], "the architecture must be one of the following: ae, clf"
-        return self._test_condition(result, reference, round_digits=self.cfg.ae_round_sensitivity if model_arch is "ae" else self.cfg.clf_round_sensitivity)
+
+    def _equality_condition(self, result: float, reference: float, threshold: float) -> list[bool, float]:
+        return np.abs(result - reference) <= threshold, np.abs(result - reference)
+
+    def _difference_condition(self, result: float, reference: float, threshold: float) -> list[bool, float]:
+        return np.abs(result - reference) > threshold, np.abs(result - reference)
 
     def update_current_stage(self, current_stage: str) -> None:
         assert current_stage in ["train", "test"] 
