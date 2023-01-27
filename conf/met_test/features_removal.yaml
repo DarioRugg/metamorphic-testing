@@ -9,4 +9,4 @@ stage: both
 # both
 
 param:
-  num_features: 1500
+  num_features: 3000
