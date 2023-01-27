@@ -1,5 +1,6 @@
 defaults:
   - standard: ../tasks/none
   - test: ../tasks/none
+  - _self_
 
 use: False

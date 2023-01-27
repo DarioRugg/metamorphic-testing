@@ -1,6 +1,6 @@
 ae:
-  equal: 0.00001
-  different: 0.0001
+  equal: 0.005
+  different: 0.001
 clf:
-  equal: 0.001
-  different: 0.01
+  equal: 0.03
+  different: 0.03
