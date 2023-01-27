@@ -4,7 +4,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, roc_auc_score
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -15,13 +15,13 @@ from scripts.utils import connect_confiuration
 from metamorphic_tests import *
 
 
-def get_data(cfg: OmegaConf) -> list[pd.DataFrame, pd.DataFrame]:
+def get_data(standard_task_cfg: OmegaConf, test_task_cfg: OmegaConf) -> list[pd.DataFrame, pd.DataFrame]:
     
-    ae_standard_df = pd.read_csv(Task.get_task(task_id=cfg.standard_task_id.ae).artifacts["losses dataframe"].get_local_copy(), index_col=0)
-    ae_test_df = pd.read_csv(Task.get_task(task_id=cfg.test_task_id.ae).artifacts["losses dataframe"].get_local_copy(), index_col=0)
-    clf_standard_df = pd.read_csv(Task.get_task(task_id=cfg.standard_task_id.clf).artifacts["predictions dataframe"].get_local_copy(), index_col=0)
+    ae_standard_df = pd.read_csv(Task.get_task(task_id=standard_task_cfg.ae).artifacts["losses dataframe"].get_local_copy(), index_col=0)
+    ae_test_df = pd.read_csv(Task.get_task(task_id=test_task_cfg.ae).artifacts["losses dataframe"].get_local_copy(), index_col=0)
+    clf_standard_df = pd.read_csv(Task.get_task(task_id=standard_task_cfg.clf).artifacts["predictions dataframe"].get_local_copy(), index_col=0)
     clf_standard_df["absolute_error"] = clf_standard_df["label"] - clf_standard_df["probabilities"]
-    clf_test_df = pd.read_csv(Task.get_task(task_id=cfg.test_task_id.clf).artifacts["predictions dataframe"].get_local_copy(), index_col=0)
+    clf_test_df = pd.read_csv(Task.get_task(task_id=test_task_cfg.clf).artifacts["predictions dataframe"].get_local_copy(), index_col=0)
     clf_test_df["absolute_error"] = np.abs(clf_test_df["label"] - clf_test_df["probabilities"])
 
     ae_df = pd.concat([ae_standard_df.drop(columns="label").add_suffix("_standard"), ae_test_df.drop(columns="label").add_suffix("_test")], axis=1)
@@ -59,7 +59,7 @@ def main(cfg : DictConfig) -> None:
     
     print(OmegaConf.to_yaml(cfg))
 
-    ae_df, clf_df = get_data(cfg)
+    ae_df, clf_df = get_data(cfg.standard_task_id, cfg.test_task_id)
     
     # auto-encoder results reporting
     for loss_name, loss in [("MSE", "mse"), ("Cross-Entropy", "ce")]:
@@ -123,7 +123,7 @@ def main(cfg : DictConfig) -> None:
     ae_test_results["result"], ae_test_results["distance from threshold"] = features_addition.MetamorphicTest(cfg.test).test(ae_test_results["score test"], ae_test_results["score standard"], model_arch="ae")
 
     # test results classifier:
-    clf_test_results = {"model": "Classifier", "score test": accuracy_score(clf_df["label"], clf_df["predictions_standard"]), "score standard": accuracy_score(clf_df["label"], clf_df["predictions_test"])}
+    clf_test_results = {"model": "Classifier", "score test": roc_auc_score(clf_df["label"], clf_df["probabilities_test"]), "score standard": roc_auc_score(clf_df["label"], clf_df["probabilities_standard"])}
     clf_test_results["result"], clf_test_results["distance from threshold"] = features_addition.MetamorphicTest(cfg.test).test(clf_test_results["score test"], clf_test_results["score standard"], model_arch="clf")
 
     test_results_df = pd.DataFrame.from_records([ae_test_results, clf_test_results])

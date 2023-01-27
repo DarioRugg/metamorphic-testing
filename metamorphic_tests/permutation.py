@@ -9,7 +9,7 @@ class MetamorphicTest(BaseTestClass):
 
     def _transformation(self, data: pd.DataFrame) -> pd.DataFrame:
         
-        new_data = data.loc[:, random.shuffle(range(data.shape[1]))]
+        new_data = data.iloc[:, random.shuffle(range(data.shape[1]))]
 
         return new_data
     

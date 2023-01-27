@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 from scripts.dataset import IBDDataset
 from torch.utils.data import DataLoader
 from omegaconf import DictConfig
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import train_test_split
 from metamorphic_tests import *
 
 
@@ -91,6 +91,10 @@ class IBDDataModule(BaseDataModule):
 
         # select rows having feature index identifier string
         data = raw_dataset.loc[raw_dataset.index.str.contains("gi|", regex=False)].T.apply(pd.to_numeric)
+        
+        if self.cfg.test.flag:
+            # mutate the data according to the test
+            data = self.morphtest_object.mutation(data)
 
         return data.shape[1]
     

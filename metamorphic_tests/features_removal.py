@@ -9,7 +9,7 @@ class MetamorphicTest(BaseTestClass):
 
     def _transformation(self, data: pd.DataFrame) -> pd.DataFrame:
         
-        new_data = data.loc[:, sorted(random.sample(range(data.shape[1]), k=data.shape[1]-self.cfg.param.num_features))]
+        new_data = data.iloc[:, sorted(random.sample(range(data.shape[1]), k=data.shape[1]-self.cfg.param.num_features))]
 
         return new_data
     

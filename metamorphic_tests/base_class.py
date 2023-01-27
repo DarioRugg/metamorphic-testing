@@ -10,7 +10,7 @@ class BaseTestClass:
         self.current_stage = current_stage
         
     def mutation(self, x_data: pd.DataFrame) -> pd.DataFrame:
-        if self.current_stage == "both" or self.cfg.stage == self.current_stage:
+        if self.cfg.stage == "both" or self.cfg.stage == self.current_stage:
             return self._transformation(x_data)
         else:
             return x_data

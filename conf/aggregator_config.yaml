@@ -1,8 +1,8 @@
 defaults:
   - _self_
-  - test: ../met_test/features_addition
+  - test: ../met_test/features_removal
   - standard_task_id: ../past_tasks/tasks/standard
-  - test_task_id: ../past_tasks/tasks/features_addition
+  - test_task_id: ../past_tasks/tasks/features_removal
 
 task_name: 'pipeline aggregator'
 

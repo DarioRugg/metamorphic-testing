@@ -3,7 +3,7 @@ defaults:
   - threshold: ../../met_test/threshold/standard
   - _self_
 
-name: "shifting"
+name: "shifting on evaluation"
 flag: true
 stage: test
 # both test
