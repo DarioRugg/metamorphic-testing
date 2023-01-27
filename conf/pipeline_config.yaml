@@ -12,4 +12,4 @@ aggregator_task_name: "pipeline aggregator"
 seed: 1234
 
 machine:
-  gpus_index: [2, 2]
+  gpus_index: [1, 1]
