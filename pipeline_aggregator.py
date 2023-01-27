@@ -36,7 +36,8 @@ def get_data(standard_task_cfg: OmegaConf, test_task_cfg: OmegaConf) -> list[pd.
 def main(cfg : DictConfig) -> None:
     task: Task = Task.init(project_name='e-muse/metamorphic-testing',
                     task_name=cfg.task_name,
-                    task_type=Task.TaskTypes.monitor)
+                    task_type=Task.TaskTypes.monitor,
+                    reuse_last_task_id=False)
 
     task.set_base_docker(
         docker_image='rugg/metamorphic:latest',

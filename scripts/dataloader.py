@@ -46,6 +46,12 @@ class IBDDataModule(BaseDataModule):
             self.morphtest_object = features_addition.MetamorphicTest(self.cfg.test)
         elif self.cfg.test.name == "features removal":
             self.morphtest_object = features_removal.MetamorphicTest(self.cfg.test)
+        elif self.cfg.test.name == "noise":
+            self.morphtest_object = noise.MetamorphicTest(self.cfg.test)
+        elif self.cfg.test.name in ["permutation", "permutation on evaluation"]:
+            self.morphtest_object = permutation.MetamorphicTest(self.cfg.test)
+        elif self.cfg.test.name in ["shifting", "shifting on evaluation"]:
+            self.morphtest_object = shifting.MetamorphicTest(self.cfg.test)
         else:
             raise f"Test {self.cfg.test.name} to be implemented yet!"
 
