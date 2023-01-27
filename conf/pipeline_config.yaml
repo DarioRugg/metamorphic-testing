@@ -9,5 +9,7 @@ ae_base_task_name: "base ae task"
 clf_base_task_name: "base clf task"
 aggregator_task_name: "pipeline aggregator"
 
+seed: 1234
+
 machine:
   gpus_index: [1, 2]
