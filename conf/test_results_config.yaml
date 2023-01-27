@@ -1,4 +1,5 @@
 defaults:
+  - _self_
   - tasks.standard: ../past_tasks/tasks/none
   - tasks.standard.test: ../met_test/none
   - tasks.features_addition: ../past_tasks/tasks/features_addition
