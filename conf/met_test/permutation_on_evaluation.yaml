@@ -7,3 +7,6 @@ name: "permutation on evaluation"
 flag: true
 stage: test
 # both test
+
+param:
+  num_features: 3000

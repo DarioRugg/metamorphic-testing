@@ -9,8 +9,8 @@ class MetamorphicTest(BaseTestClass):
 
     def _transformation(self, data: pd.DataFrame) -> pd.DataFrame:
 
-        mean_perturbation = np.random.standard_normal(size=data.shape[1])
-        var_perturbation = np.random.standard_normal(size=data.shape[1])
+        mean_perturbation = np.random.normal(loc=self.cfg.param.mu, scale=self.cfg.param.std, size=data.shape[1])
+        var_perturbation = np.random.normal(loc=self.cfg.param.mu, scale=self.cfg.param.std, size=data.shape[1])
         
         new_data = (data * var_perturbation) + mean_perturbation
 

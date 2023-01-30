@@ -7,3 +7,7 @@ name: "shifting on evaluation"
 flag: true
 stage: test
 # both test
+
+param:
+  mu: .0
+  std: .3

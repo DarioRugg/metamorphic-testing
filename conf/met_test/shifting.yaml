@@ -7,3 +7,7 @@ name: "shifting"
 flag: true
 stage: both
 # both
+
+param:
+  mu: .0
+  std: .3

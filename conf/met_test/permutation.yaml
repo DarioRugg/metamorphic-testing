@@ -6,4 +6,7 @@ defaults:
 name: "permutation"
 flag: true
 stage: both
-# both test
+# both
+
+param:
+  num_features: 3000

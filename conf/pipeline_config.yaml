@@ -2,7 +2,7 @@ defaults:
   - _self_
   - dataset: ibd
   - past_tasks: pipeline_stand
-  - test: ../met_test/permutation
+  - test: ../met_test/shifting
   - no_test: ../met_test/none
 
 ae_base_task_name: "base ae task"

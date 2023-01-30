@@ -9,8 +9,10 @@ class MetamorphicTest(BaseTestClass):
 
     def _transformation(self, data: pd.DataFrame) -> pd.DataFrame:
         
-        shuffled_columns = data.columns
-        random.shuffle(shuffled_columns)
+        shuffled_columns = data.columns.values
+        indexes_shuffled = random.sample(list(range(shuffled_columns.shape[0])), self.cfg.param.num_features)
+
+        shuffled_columns[sorted(indexes_shuffled)] = shuffled_columns[indexes_shuffled]
 
         new_data = data[shuffled_columns]
 
@@ -24,7 +26,7 @@ class MetamorphicTest(BaseTestClass):
                 return self._equality_condition(result, reference, self.cfg.threshold.ae.equal)
             else:
                 return self._equality_condition(result, reference, self.cfg.threshold.clf.equal)
-        elif "test":
+        elif self.cfg.stage == "test":
             if model_arch == "ae":
                 return self._difference_condition(result, reference, self.cfg.threshold.ae.different)
             else:
