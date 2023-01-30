@@ -118,14 +118,25 @@ def main(cfg : DictConfig) -> None:
     plt.ylabel(f'Auto-Encoder MSE')
     task.get_logger().report_matplotlib_figure(title="Classifier - scatterplot", series="", figure=plt.gcf(), report_interactive=False)
     plt.close()
+
+    if cfg.test.name == "features addition":
+        morphtest_object = features_addition.MetamorphicTest(cfg.test)
+    elif cfg.test.name == "features removal":
+        morphtest_object = features_removal.MetamorphicTest(cfg.test)
+    elif cfg.test.name == "noise":
+        morphtest_object = noise.MetamorphicTest(cfg.test)
+    elif cfg.test.name in ["permutation", "permutation on evaluation"]:
+        morphtest_object = permutation.MetamorphicTest(cfg.test)
+    elif cfg.test.name in ["shifting", "shifting on evaluation"]:
+        morphtest_object = shifting.MetamorphicTest(cfg.test)
     
     # test results auto-encoder:
     ae_test_results = {"model": "Auto-Encoder", "score test": np.mean(ae_df["mse_test"]), "score standard": np.mean(ae_df["mse_standard"])}
-    ae_test_results["result"], ae_test_results["distance from threshold"] = features_addition.MetamorphicTest(cfg.test).test(ae_test_results["score test"], ae_test_results["score standard"], model_arch="ae")
+    ae_test_results["result"], ae_test_results["distance from threshold"] = morphtest_object.test(ae_test_results["score test"], ae_test_results["score standard"], model_arch="ae")
 
     # test results classifier:
     clf_test_results = {"model": "Classifier", "score test": roc_auc_score(clf_df["label"], clf_df["probabilities_test"]), "score standard": roc_auc_score(clf_df["label"], clf_df["probabilities_standard"])}
-    clf_test_results["result"], clf_test_results["distance from threshold"] = features_addition.MetamorphicTest(cfg.test).test(clf_test_results["score test"], clf_test_results["score standard"], model_arch="clf")
+    clf_test_results["result"], clf_test_results["distance from threshold"] = morphtest_object.test(clf_test_results["score test"], clf_test_results["score standard"], model_arch="clf")
 
     test_results_df = pd.DataFrame.from_records([ae_test_results, clf_test_results])
     
