@@ -129,7 +129,7 @@ def main(cfg : DictConfig) -> None:
 
     test_results_df = pd.DataFrame.from_records([ae_test_results, clf_test_results])
     
-    task.get_logger().report_vector(title='Scores comparison', series='Losses', values=test_results_df[["score test", "score standard"]].values.transpose(), labels=["standard", "test"], xlabels=test_results_df["model"], xaxis="Models", yaxis='Score')
+    task.get_logger().report_vector(title='Scores comparison', series='', values=test_results_df[["score test", "score standard"]].values.transpose(), labels=["test", "standard"], xlabels=test_results_df["model"], xaxis="Models", yaxis='Score')
     task.get_logger().report_table(title="Test results", series="", iteration=0, table_plot=test_results_df)
 
 
