@@ -120,7 +120,7 @@ def main(cfg : DictConfig) -> None:
         parents_to_wait.append("classifier test training")
     
     # results aggregation
-    pipe.add_step(name="experiments aggregator", 
+    pipe.add_step(name=f"experiments aggregator ({cfg.test.name} test)", 
                 base_task_project="e-muse/metamorphic-testing", 
                 base_task_name=cfg.aggregator_task_name,
                 parameter_override={"hydra_config/test/flag":cfg.test.flag,
