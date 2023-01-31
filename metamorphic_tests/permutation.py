@@ -8,15 +8,15 @@ import numpy as np
 class MetamorphicTest(BaseTestClass):
 
     def _transformation(self, data: pd.DataFrame) -> pd.DataFrame:
+        print(" --> permuting!")
         
         shuffled_columns = data.columns.values
         indexes_shuffled = random.sample(list(range(shuffled_columns.shape[0])), self.cfg.param.num_features)
 
+        data.iloc[:, indexes_shuffled] = data.iloc[:, sorted(indexes_shuffled)]
         shuffled_columns[sorted(indexes_shuffled)] = shuffled_columns[indexes_shuffled]
-
-        new_data = data[shuffled_columns]
-
-        return new_data
+        data.columns = shuffled_columns
+        return data
     
     def test(self, result: float, reference: float, model_arch: str) -> list[bool, float]:
         super().test(model_arch)
