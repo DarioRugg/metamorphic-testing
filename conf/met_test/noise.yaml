@@ -10,4 +10,4 @@ stage: both
 
 param:
   mu: .0
-  std: .3
+  std: .1

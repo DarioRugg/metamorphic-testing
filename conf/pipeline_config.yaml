@@ -2,7 +2,13 @@ defaults:
   - _self_
   - dataset: ibd
   - past_tasks: pipeline_stand
-  - test: ../met_test/shifting
+  # - test: ../met_test/features_addition
+  - test: ../met_test/noise
+  # - test: ../met_test/noise
+  # - test: ../met_test/permutation
+  # - test: ../met_test/permutation_on_evaluation
+  # - test: ../met_test/shifting
+  # - test: ../met_test/shifting_on_evaluation
   - no_test: ../met_test/none
 
 ae_base_task_name: "base ae task"
@@ -12,4 +18,5 @@ aggregator_task_name: "pipeline aggregator"
 seed: 1234
 
 machine:
-  gpus_index: [1, 1]
+  # gpus_index: [1, 1]
+  gpus_index: [2, 2]

@@ -4,7 +4,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, roc_auc_score
 
 import hydra
 from omegaconf import DictConfig, OmegaConf
@@ -36,7 +36,8 @@ def get_data(standard_task_cfg: OmegaConf, test_task_cfg: OmegaConf) -> list[pd.
 def main(cfg : DictConfig) -> None:
     task: Task = Task.init(project_name='e-muse/metamorphic-testing',
                     task_name=cfg.task_name,
-                    task_type=Task.TaskTypes.monitor)
+                    task_type=Task.TaskTypes.qc,
+                    reuse_last_task_id=False)
 
     task.set_base_docker(
         docker_image='rugg/metamorphic:latest',
@@ -68,33 +69,34 @@ def main(cfg : DictConfig) -> None:
             ae_df, clf_df = get_data(cfg.tasks.standard, test_task_cfg)
 
             
-            if cfg.test.name == "features addition":
-                morphtest_object = features_addition.MetamorphicTest(cfg.test)
-            elif cfg.test.name == "features removal":
-                morphtest_object = features_removal.MetamorphicTest(cfg.test)
-            elif cfg.test.name == "noise":
-                morphtest_object = noise.MetamorphicTest(cfg.test)
-            elif cfg.test.name in ["permutation", "permutation on evaluation"]:
-                morphtest_object = permutation.MetamorphicTest(cfg.test)
-            elif cfg.test.name in ["shifting", "shifting on evaluation"]:
-                morphtest_object = shifting.MetamorphicTest(cfg.test)
+            if test_task_cfg.test.name == "features addition":
+                morphtest_object = features_addition.MetamorphicTest(test_task_cfg.test)
+            elif test_task_cfg.test.name == "features removal":
+                morphtest_object = features_removal.MetamorphicTest(test_task_cfg.test)
+            elif test_task_cfg.test.name == "noise":
+                morphtest_object = noise.MetamorphicTest(test_task_cfg.test)
+            elif test_task_cfg.test.name in ["permutation", "permutation on evaluation"]:
+                morphtest_object = permutation.MetamorphicTest(test_task_cfg.test)
+            elif test_task_cfg.test.name in ["shifting", "shifting on evaluation"]:
+                morphtest_object = shifting.MetamorphicTest(test_task_cfg.test)
 
             # test results auto-encoder:
-            ae_test_results = {"model": "Auto-Encoder", "score test": np.mean(ae_df["mse_test"]), "score standard": np.mean(ae_df["mse_standard"])}
+            ae_test_results = {"test type": test_task_cfg.test.name, "model": "Auto-Encoder", "score test": np.mean(ae_df["mse_test"]), "score standard": np.mean(ae_df["mse_standard"])}
             ae_test_results["result"], ae_test_results["distance from threshold"] = morphtest_object.test(ae_test_results["score test"], ae_test_results["score standard"], model_arch="ae")
 
             # test results classifier:
-            clf_test_results = {"model": "Classifier", "score test": accuracy_score(clf_df["label"], clf_df["predictions_standard"]), "score standard": accuracy_score(clf_df["label"], clf_df["predictions_test"])}
+            clf_test_results = {"test type": test_task_cfg.test.name, "model": "Classifier", 
+                                "score test": roc_auc_score(clf_df["label"], clf_df["probabilities_test"]), 
+                                "score standard": roc_auc_score(clf_df["label"], clf_df["probabilities_standard"])}
             clf_test_results["result"], clf_test_results["distance from threshold"] = morphtest_object.test(clf_test_results["score test"], clf_test_results["score standard"], model_arch="clf")
-
-            test_results_df = pd.concat(test_results_df, pd.DataFrame.from_records([{"test type": test_task_cfg.test.name}, ae_test_results, clf_test_results]), ignore_index=True)
             
-    
-    task.get_logger().report_vector(title='Scores comparison', series='Auto-Encoder', values=test_results_df[test_results_df["model"]=="Auto-Encoder"][["score test", "score standard"]].values.transpose(), labels=["standard", "test"], xlabels=test_results_df["test type"], xaxis="Metamorphic test", yaxis='Score')
-    task.get_logger().report_vector(title='Scores comparison', series='Classifier', values=test_results_df[test_results_df["model"]=="Classifier"][["score test", "score standard"]].values.transpose(), labels=["standard", "test"], xlabels=test_results_df["test type"], xaxis="Metamorphic test", yaxis='Score')
-    
-    task.get_logger().report_vector(title='Distance from threshold', series='Auto-Encoder', values=test_results_df[test_results_df["model"]=="Auto-Encoder"]["distance from threshold"].values, xlabels=test_results_df["test type"], xaxis="Metamorphic test", yaxis='Distance from threshold', extra_layout={'color': test_results_df[test_results_df["model"]=="Auto-Encoder"]["result"].replace({True: "green", False: "red"})})
-    task.get_logger().report_vector(title='Distance from threshold', series='Classifier', values=test_results_df[test_results_df["model"]=="Classifier"]["distance from threshold"].values, xlabels=test_results_df["test type"], xaxis="Metamorphic test", yaxis='Distance from threshold', extra_layout={'color': test_results_df[test_results_df["model"]=="Classifier"]["result"].replace({True: "green", False: "red"})})
+            test_results_df = pd.concat([test_results_df, pd.DataFrame.from_records([ae_test_results, clf_test_results])], ignore_index=True)
+            
+    task.get_logger().report_vector(title='Scores comparison Auto-Encoder', series='', values=test_results_df[test_results_df["model"]=="Auto-Encoder"][["score test", "score standard"]].values.transpose(), labels=["test", "standard"], xaxis="Metamorphic test", xlabels=test_results_df[test_results_df["model"]=="Auto-Encoder"]["test type"].tolist(), yaxis='MSE loss')
+    task.get_logger().report_vector(title='Scores comparison Classifier', series='', values=test_results_df[test_results_df["model"]=="Classifier"][["score test", "score standard"]].values.transpose(), labels=["test", "standard"], xaxis="Metamorphic test", xlabels=test_results_df[test_results_df["model"]=="Classifier"]["test type"].tolist(), yaxis='AUC score')
+
+    task.get_logger().report_vector(title='Distance from threshold', series='Auto-Encoder', values=test_results_df[test_results_df["model"]=="Auto-Encoder"]["distance from threshold"].values, xlabels=test_results_df[test_results_df["model"]=="Auto-Encoder"]["test type"].tolist(), xaxis="Metamorphic test", yaxis='Distance from threshold')
+    task.get_logger().report_vector(title='Distance from threshold', series='Classifier', values=test_results_df[test_results_df["model"]=="Classifier"]["distance from threshold"].values, xlabels=test_results_df[test_results_df["model"]=="Classifier"]["test type"].tolist(), xaxis="Metamorphic test", yaxis='Distance from threshold')
     
     task.get_logger().report_table(title="Test results", series="", iteration=0, table_plot=test_results_df)
 
