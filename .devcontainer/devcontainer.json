@@ -3,7 +3,7 @@
 {
 	"name": "metamorphic container",
 
-	"image": "rugg/metamorphic:latest",
+	"image": "rugg/aebias:latest",
 	
 	"runArgs": ["--name=rugg-metamorph", "--runtime=nvidia", "--ipc=host"],
 
